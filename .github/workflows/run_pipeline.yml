@@ -1,54 +1,39 @@
-name: Auto Short Generator
+name: Run YouTube Shorts Pipeline
 
 on:
   workflow_dispatch:
     inputs:
-      topics:
-        description: 'Themen (eines pro Zeile)'
+      themen:
+        description: 'Themen für die Shorts (mehrere durch Komma getrennt)'
         required: true
+        default: 'Künstliche Intelligenz, Raumfahrt, Psychologie'
+        type: string
 
 jobs:
-  build:
-    name: Rendere & Uploade Short
+  run-pipeline:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Repository auschecken
-      uses: actions/checkout@v4
+      - name: Repository auschecken
+        uses: actions/checkout@v4
 
-    - name: Python einrichten
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.12'
+      - name: Python einrichten
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
-    - name: System-Abhängigkeiten (FFmpeg & Fonts) installieren
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y ffmpeg libasound2-dev fonts-dejavu
+      - name: System-Pakete installieren
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
 
-    - name: Python-Pakete installieren
-      run: |
-        pip install --upgrade pip
-        pip install requests numpy pillow edge-tts openai-whisper ddgs moviepy google-api-python-client google-auth-oauthlib google-auth-transport-requests
+      - name: Abhängigkeiten installieren
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-    - name: Themen & YouTube-Token vorbereiten
-      env:
-        TOPICS_INPUT: ${{ github.event.inputs.topics }}
-        YOUTUBE_TOKEN_B64: ${{ secrets.YOUTUBE_TOKEN_B64 }}
-      run: |
-        printf "%s\n" "$TOPICS_INPUT" > skript.txt
-        if [ -n "$YOUTUBE_TOKEN_B64" ]; then
-          echo "$YOUTUBE_TOKEN_B64" | base64 -d > token.pickle
-        fi
-
-    - name: Pipeline starten
-      env:
-        GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-      run: |
-        python hybrid_pipeline.py
-
-    - name: Fertige Videos zusätzlich als Backup speichern
-      uses: actions/upload-artifact@v4
-      with:
-        name: fertige-shorts
-        path: output/
+      - name: Pipeline starten
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          THEMEN_LISTE: ${{ github.event.inputs.themen }}
+        run: |
+          python hybrid_pipeline.py
