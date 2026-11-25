@@ -1,0 +1,54 @@
+name: Auto Short Generator
+
+on:
+  workflow_dispatch:
+    inputs:
+      topics:
+        description: 'Themen (eines pro Zeile)'
+        required: true
+
+jobs:
+  build:
+    name: Rendere & Uploade Short
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Repository auschecken
+      uses: actions/checkout@v4
+
+    - name: Python einrichten
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: System-Abhängigkeiten (FFmpeg & Fonts) installieren
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ffmpeg libasound2-dev fonts-dejavu
+
+    - name: Python-Pakete installieren
+      run: |
+        pip install --upgrade pip
+        pip install requests numpy pillow edge-tts openai-whisper ddgs moviepy google-api-python-client google-auth-oauthlib google-auth-transport-requests
+
+    - name: Themen & YouTube-Token vorbereiten
+      env:
+        TOPICS_INPUT: ${{ github.event.inputs.topics }}
+        YOUTUBE_TOKEN_B64: ${{ secrets.YOUTUBE_TOKEN_B64 }}
+      run: |
+        printf "%s\n" "$TOPICS_INPUT" > skript.txt
+        if [ -n "$YOUTUBE_TOKEN_B64" ]; then
+          echo "$YOUTUBE_TOKEN_B64" | base64 -d > token.pickle
+        fi
+
+    - name: Pipeline starten
+      env:
+        GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      run: |
+        python hybrid_pipeline.py
+
+    - name: Fertige Videos zusätzlich als Backup speichern
+      uses: actions/upload-artifact@v4
+      with:
+        name: fertige-shorts
+        path: output/
