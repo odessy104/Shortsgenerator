@@ -306,6 +306,14 @@ def extract_highlights_and_emojis(parts):
     return highlight_set, emoji_map
 
 def get_topics_queue():
+    # 1. Cloud-Priorität: Liest die Themen direkt aus GitHub Actions (THEMEN_LISTE)
+    themen_env = os.getenv("THEMEN_LISTE", "").strip()
+    if themen_env:
+        topics = [t.strip() for t in themen_env.split(",") if t.strip()]
+        if topics:
+            return topics
+
+    # 2. Lokaler Fallback: Liest die skript.txt aus (für lokale Tests auf dem PC)
     script_path = "skript.txt"
     if not os.path.exists(script_path):
         with open(script_path, "w", encoding="utf-8") as f:
@@ -430,15 +438,10 @@ def download_contextual_media(parts, main_topic):
     return downloaded_files
 
 def create_perfect_background_clip(image_path, target_duration=3.0):
-    """
-    Passt das Bild im Container-Modus perfekt ein: 
-    Vordergrund wird zu 100% vollständig gezeigt, der Hintergrund wird weich abgedunkelt aufgefüllt.
-    """
     pil_img = Image.open(image_path).convert('RGB')
     target_w, target_h = 1080, 1920
     img_w, img_h = pil_img.size
 
-    # Unscharfer Hintergrund
     bg_scale = max(target_w / img_w, target_h / img_h)
     bg_w = int(img_w * bg_scale)
     bg_h = int(img_h * bg_scale)
@@ -450,7 +453,6 @@ def create_perfect_background_clip(image_path, target_duration=3.0):
     enhancer = ImageEnhance.Brightness(bg_cropped)
     bg_dark = enhancer.enhance(0.35)
 
-    # Vollständiger Vordergrund ohne Beschneidung
     fg_scale = min(target_w / img_w, target_h / img_h) * 0.90
     fg_w = int(img_w * fg_scale)
     fg_h = int(img_h * fg_scale)
@@ -479,7 +481,6 @@ def make_perfect_timeline(media_clips, total_duration):
             else:
                 clip_looped = clip.subclipped(0, exact_seg_dur)
             
-            # Sehr sanfter, eleganter Zoom
             sub = clip_looped.resized(lambda t: 1.0 + 0.03 * (t / max(0.1, clip_looped.duration)))
             sub = sub.with_position('center')
             clips_sequence.append(sub)
@@ -721,7 +722,7 @@ def get_outro_clip(video_size, duration=3.5, start_time=0.0):
     return ImageClip(temp_path).with_duration(duration).with_start(start_time).with_position(('center', h * 0.42))
 
 def upload_short_to_youtube(video_path, title, description="#shorts #science #funfacts"):
-    SCOPES = "[https://www.googleapis.com/auth/youtube.upload](https://www.googleapis.com/auth/youtube.upload)"
+    SCOPES = ["[https://www.googleapis.com/auth/youtube.upload](https://www.googleapis.com/auth/youtube.upload)"]
     creds = None
     if os.path.exists("token.pickle"):
         with open("token.pickle", "rb") as token:
