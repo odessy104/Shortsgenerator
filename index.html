@@ -15,7 +15,8 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
+            min-height: 100vh;
+            box-sizing: border-box;
         }
         .container {
             background: #1e1e1e;
@@ -25,11 +26,34 @@
             width: 100%;
             max-width: 400px;
             text-align: center;
+            box-sizing: border-box;
         }
         h1 {
             font-size: 1.5rem;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             color: #ffffff;
+        }
+        p {
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 20px;
+        }
+        textarea {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            background: #2a2a2a;
+            color: white;
+            font-family: inherit;
+            font-size: 0.95rem;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #ff0033;
         }
         button {
             background-color: #ff0033;
@@ -57,24 +81,32 @@
 
     <div class="container">
         <h1>Shorts Cloud Generator</h1>
-        <p style="font-size: 0.85rem; color: #888; margin-bottom: 20px;">
-            Starte die vollautomatisierte Erstellung deines YouTube Shorts direkt über GitHub Actions.
-        </p>
+        <p>Trage deine Themen ein (eines pro Zeile oder mit Komma getrennt):</p>
         
-        <!-- Der Button zum Starten -->
-        <button onclick="triggerGitHubWorkflow()">Short in der Cloud starten 🚀</button>
+        <textarea id="themenInput" rows="5" placeholder="Künstliche Intelligenz&#10;Raumfahrt&#10;Psychologie"></textarea>
+        
+        <button onclick="triggerGitHubWorkflow()">Shorts in der Cloud starten 🚀</button>
         
         <div id="status">Bereit</div>
     </div>
 
     <script>
         async function triggerGitHubWorkflow() {
-            // Trage hier deine GitHub-Daten ein:
-            const GITHUB_TOKEN = "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"; 
+            // 1. Trage hier deine echten GitHub-Daten ein:
+            const GITHUB_TOKEN = "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";
             const OWNER = "odessy104"; 
-            const REPO = "Shortsgenerator"; 
+            const REPO = "Shortsgenerator";
             
             const statusDiv = document.getElementById("status");
+            const rawInput = document.getElementById("themenInput").value;
+            
+            // Wandelt Zeilenumbrüche in Kommas um und entfernt leere Zeilen
+            const formatierteThemen = rawInput
+                .split('\n')
+                .map(zeile => zeile.trim())
+                .filter(zeile => zeile.length > 0)
+                .join(', ') || "Künstliche Intelligenz";
+            
             statusDiv.innerText = "Sende Anfrage an GitHub...";
 
             const url = `https://api.github.com/repos/${OWNER}/${REPO}/actions/workflows/run_pipeline.yml/dispatches`;
@@ -88,16 +120,19 @@
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        ref: 'main' // Dein Haupt-Branch (z.B. main oder master)
+                        ref: 'main', // Dein Haupt-Branch (z.B. main oder master)
+                        inputs: {
+                            themen: formatierteThemen
+                        }
                     })
                 });
 
                 if (response.ok) {
                     statusDiv.innerText = "Erfolgreich gestartet! 🚀 Schau in GitHub Actions.";
-                    alert("Shorts-Generierung in der Cloud gestartet! 🚀");
+                    alert("Shorts-Generierung gestartet für:\n" + formatierteThemen);
                 } else {
-                    statusDiv.innerText = "Fehler beim Starten.";
-                    alert("Fehler beim Starten des Workflows. Überprüfe den Token und die Konsole.");
+                    statusDiv.innerText = "Fehler beim Starten (Code: " + response.status + ").";
+                    alert("Fehler beim Starten des Workflows. Überprüfe Token, Repo-Namen und Branch.");
                 }
             } catch (error) {
                 console.error("Netzwerkfehler:", error);
