@@ -1,0 +1,7 @@
+groq
+edge-tts
+openai-whisper
+duckduckgo-search
+moviepy
+google-auth-oauthlib
+google-api-python-client
