@@ -2,6 +2,7 @@ groq
 edge-tts
 openai-whisper
 duckduckgo-search
+ddgs
 moviepy
 google-api-python-client
 google-auth-oauthlib
