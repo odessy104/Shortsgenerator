@@ -1,147 +1,110 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="mobile-web-app-capable" content="yes">
-  <title>Shorts Studio</title>
-  <style>
-    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background: #0f1117; color: #f3f4f6; margin: 0; padding: 20px; display: flex; justify-content: center; }
-    .app { width: 100%; max-width: 480px; }
-    h1 { font-size: 1.5rem; margin-bottom: 4px; color: #facc15; }
-    p.sub { color: #9ca3af; font-size: 0.9rem; margin-top: 0; margin-bottom: 20px; }
-    .card { background: #1a1d27; border: 1px solid #2d3243; border-radius: 16px; padding: 16px; margin-bottom: 16px; }
-    label { display: block; font-size: 0.85rem; font-weight: 600; color: #d1d5db; margin-bottom: 8px; }
-    textarea, input {
-      width: 100%; background: #0f1117; border: 1px solid #374151; color: #fff;
-      border-radius: 10px; padding: 12px; font-size: 1rem; outline: none;
-    }
-    textarea:focus, input:focus { border-color: #facc15; }
-    textarea { min-height: 150px; resize: vertical; line-height: 1.4; }
-    button {
-      width: 100%; background: #facc15; color: #0f1117; font-weight: 700; font-size: 1.05rem;
-      border: none; border-radius: 12px; padding: 15px; cursor: pointer; margin-top: 12px;
-      transition: transform 0.1s, opacity 0.2s;
-    }
-    button:active { transform: scale(0.98); }
-    button:disabled { opacity: 0.5; cursor: not-allowed; }
-    .settings-toggle { background: none; color: #9ca3af; font-size: 0.85rem; text-decoration: underline; padding: 6px; margin-top: 4px; }
-    .hidden { display: none; }
-    .status { margin-top: 14px; padding: 12px; border-radius: 10px; font-size: 0.9rem; display: none; }
-    .status.ok { display: block; background: rgba(34, 197, 94, 0.15); border: 1px solid #22c55e; color: #86efac; }
-    .status.err { display: block; background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #fca5a5; }
-    .field { margin-bottom: 12px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Shorts Generator</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        .container {
+            background: #1e1e1e;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #ffffff;
+        }
+        button {
+            background-color: #ff0033;
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background-color: #cc0029;
+        }
+        #status {
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #a0a0a0;
+        }
+    </style>
 </head>
 <body>
-  <div class="app">
-    <h1>🎬 Science Shorts Studio</h1>
-    <p class="sub">Themen eingeben & Cloud-Produktion starten</p>
 
-    <div class="card">
-      <label for="topics">Deine Themen (ein Thema pro Zeile):</label>
-      <textarea id="topics" placeholder="Warum Uhren im Weltall langsamer ticken&#10;Was passiert im Inneren eines Neutronensterns"></textarea>
-      <button id="startBtn" onclick="triggerWorkflow()">🚀 Produktion & Upload starten</button>
-      <div id="statusBox" class="status"></div>
+    <div class="container">
+        <h1>Shorts Cloud Generator</h1>
+        <p style="font-size: 0.85rem; color: #888; margin-bottom: 20px;">
+            Starte die vollautomatisierte Erstellung deines YouTube Shorts direkt über GitHub Actions.
+        </p>
+        
+        <!-- Der Button zum Starten -->
+        <button onclick="triggerGitHubWorkflow()">Short in der Cloud starten 🚀</button>
+        
+        <div id="status">Bereit</div>
     </div>
 
-    <button class="settings-toggle" onclick="toggleSettings()">⚙️ GitHub-Verbindung einrichten</button>
+    <script>
+        async function triggerGitHubWorkflow() {
+            // Trage hier deine GitHub-Daten ein:
+            const GITHUB_TOKEN = "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"; 
+            const OWNER = "odessy104"; 
+            const REPO = "Shortsgenerator"; 
+            
+            const statusDiv = document.getElementById("status");
+            statusDiv.innerText = "Sende Anfrage an GitHub...";
 
-    <div id="settingsCard" class="card hidden">
-      <div class="field">
-        <label>GitHub Benutzername</label>
-        <input type="text" id="ghUser" placeholder="dein-username">
-      </div>
-      <div class="field">
-        <label>Repository-Name</label>
-        <input type="text" id="ghRepo" placeholder="shorts-generator">
-      </div>
-      <div class="field">
-        <label>GitHub Personal Access Token (PAT)</label>
-        <input type="password" id="ghToken" placeholder="github_pat_...">
-      </div>
-      <button onclick="saveSettings()" style="background:#374151; color:#fff;">💾 Einstellungen auf Handy speichern</button>
-    </div>
-  </div>
+            const url = `https://api.github.com/repos/${OWNER}/${REPO}/actions/workflows/run_pipeline.yml/dispatches`;
 
-  <script>
-    window.onload = () => {
-      document.getElementById('ghUser').value = localStorage.getItem('ghUser') || '';
-      document.getElementById('ghRepo').value = localStorage.getItem('ghRepo') || '';
-      document.getElementById('ghToken').value = localStorage.getItem('ghToken') || '';
-      if (!localStorage.getItem('ghToken')) {
-        document.getElementById('settingsCard').classList.remove('hidden');
-      }
-    };
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `token ${GITHUB_TOKEN}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        ref: 'main' // Dein Haupt-Branch (z.B. main oder master)
+                    })
+                });
 
-    function toggleSettings() {
-      document.getElementById('settingsCard').classList.toggle('hidden');
-    }
-
-    function saveSettings() {
-      localStorage.setItem('ghUser', document.getElementById('ghUser').value.trim());
-      localStorage.setItem('ghRepo', document.getElementById('ghRepo').value.trim());
-      localStorage.setItem('ghToken', document.getElementById('ghToken').value.trim());
-      showStatus('✅ Einstellungen lokal gespeichert!', true);
-      document.getElementById('settingsCard').classList.add('hidden');
-    }
-
-    function showStatus(msg, isOk) {
-      const box = document.getElementById('statusBox');
-      box.textContent = msg;
-      box.className = 'status ' + (isOk ? 'ok' : 'err');
-    }
-
-    async function triggerWorkflow() {
-      const user = localStorage.getItem('ghUser');
-      const repo = localStorage.getItem('ghRepo');
-      const token = localStorage.getItem('ghToken');
-      const topics = document.getElementById('topics').value.trim();
-
-      if (!user || !repo || !token) {
-        showStatus('⚠️ Bitte zuerst unten die GitHub-Verbindung eintragen!', false);
-        document.getElementById('settingsCard').classList.remove('hidden');
-        return;
-      }
-      if (!topics) {
-        showStatus('⚠️ Bitte gib mindestens ein Thema ein.', false);
-        return;
-      }
-
-      const btn = document.getElementById('startBtn');
-      btn.disabled = true;
-      btn.textContent = '⏳ Sende an GitHub...';
-
-      try {
-        const res = await fetch(`https://api.github.com/repos/${user}/${repo}/actions/workflows/run_pipeline.yml/dispatches`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/vnd.github+json',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            ref: 'main',
-            inputs: { topics: topics }
-          })
-        });
-
-        if (res.status === 204) {
-          showStatus('🎉 Gestartet! GitHub rendert jetzt deine Videos und lädt sie in ca. 2–3 Min. hoch.', true);
-          document.getElementById('topics').value = '';
-        } else {
-          const errData = await res.json().catch(() => ({}));
-          showStatus(`❌ Fehler (${res.status}): ${errData.message || 'Prüfe Token, Repo-Name oder Branch (main/master).'}`, false);
+                if (response.ok) {
+                    statusDiv.innerText = "Erfolgreich gestartet! 🚀 Schau in GitHub Actions.";
+                    alert("Shorts-Generierung in der Cloud gestartet! 🚀");
+                } else {
+                    statusDiv.innerText = "Fehler beim Starten.";
+                    alert("Fehler beim Starten des Workflows. Überprüfe den Token und die Konsole.");
+                }
+            } catch (error) {
+                console.error("Netzwerkfehler:", error);
+                statusDiv.innerText = "Netzwerkfehler aufgetreten.";
+            }
         }
-      } catch (e) {
-        showStatus('❌ Netzwerkfehler: ' + e.message, false);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = '🚀 Produktion & Upload starten';
-      }
-    }
-  </script>
+    </script>
+
 </body>
 </html>
