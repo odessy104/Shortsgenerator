@@ -15,7 +15,10 @@ import numpy as np
 from PIL import Image, ImageEnhance, ImageDraw, ImageFont
 import edge_tts
 import whisper
-from ddgs import DDGS
+try:
+    from ddgs import DDGS
+except ImportError:
+    DDGS = None  # Verhindert den Absturz
 from moviepy import (
     VideoFileClip, 
     AudioFileClip, 
