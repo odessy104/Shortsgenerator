@@ -52,16 +52,16 @@ if IS_GITHUB_ACTIONS:
     if not os.path.exists(FONT_PATH):
         FONT_PATH = "DejaVuSans-Bold"
     SUBTITLE_FONT_SIZE = 65
-    print("☁️ Umgebung: GitHub Actions (Online) – Verwende Cloud-Schriftgröße 65.")
+    print("☁️ Umgebung: GitHub Actions (Online) – Verwende Cloud-Schriftgröße 65 & Wikimedia.")
 else:
     # Lokaler Windows-Pfad für den Laptop
     FONT_PATH = "C:/Windows/Fonts/arialbd.ttf"
     if not os.path.exists(FONT_PATH):
         FONT_PATH = "arial.ttf"
     SUBTITLE_FONT_SIZE = 48
-    print("💻 Umgebung: Lokaler Laptop – Verwende lokale Schriftgröße 48.")
+    print("💻 Umgebung: Lokaler Laptop – Verwende lokale Schriftgröße 48 & DDGS.")
 
-GROQ_API_KEY = "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"
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "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")
 GROQ_MODEL = "openai/gpt-oss-120b"
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 
@@ -325,12 +325,14 @@ def extract_highlights_and_emojis(parts):
     return highlight_set, emoji_map
 
 def get_topics_queue():
+    # 1. Cloud-Priorität: Liest die Themen direkt aus GitHub Actions (THEMEN_LISTE)
     themen_env = os.getenv("THEMEN_LISTE", "").strip()
     if themen_env:
         topics = [t.strip() for t in themen_env.split(",") if t.strip()]
         if topics:
             return topics
 
+    # 2. Lokaler Fallback: Liest die skript.txt aus (für lokale Tests auf dem PC)
     script_path = "skript.txt"
     if not os.path.exists(script_path):
         with open(script_path, "w", encoding="utf-8") as f:
@@ -397,13 +399,69 @@ def search_ddgs_image_pool(queries_to_try, used_urls):
                             test_img = Image.open(BytesIO(img_bytes))
                             test_img.verify()
                             used_urls.add(img_url)
-                            print(f"   📸 Perfektes Bild gefunden: '{q}'")
+                            print(f"   📸 Perfektes DDGS-Bild gefunden: '{q}'")
                             return img_bytes
                     except Exception:
                         continue
         except Exception:
             time.sleep(0.3)
             continue
+    return None
+
+def search_wikimedia_image_pool(query, used_urls):
+    search_url = "[https://commons.wikimedia.org/w/api.php](https://commons.wikimedia.org/w/api.php)"
+    clean_q = re.sub(r'\b(macro|photography|wide shot|realistic|cinematic|background|high resolution)\b', '', query, flags=re.IGNORECASE).strip()
+    search_queries = [
+        clean_q,
+        f"{clean_q} science",
+        f"{clean_q} nature"
+    ]
+    headers = {"User-Agent": "YouTubeShortsBot/1.0 (Educational Video Project; contact@example.com)"}
+    
+    for sq in search_queries:
+        if not sq:
+            continue
+        params = {
+            "action": "query",
+            "generator": "search",
+            "gsrsearch": f"filetype:bitmap {sq}",
+            "gsrnamespace": "6",
+            "gsrlimit": "15",
+            "prop": "imageinfo",
+            "iiprop": "url|size",
+            "iiurlwidth": "1280",
+            "format": "json"
+        }
+        try:
+            response = requests.get(search_url, params=params, headers=headers, timeout=8)
+            data = response.json()
+            pages = data.get("query", {}).get("pages", {})
+            
+            for page_id, page_info in pages.items():
+                title = page_info.get("title", "")
+                image_info = page_info.get("imageinfo", [])
+                if image_info:
+                    info = image_info[0]
+                    # Nutze thumburl (1280px breit) falls vorhanden, um riesige 50MB Originaldateien zu vermeiden
+                    img_url = info.get("thumburl") or info.get("url")
+                    if not img_url or img_url in used_urls:
+                        continue
+                    if is_url_blocked_watermark_or_thumbnail(img_url, title):
+                        continue
+                    try:
+                        resp = requests.get(img_url, timeout=6, headers=headers)
+                        img_bytes = resp.content
+                        if len(img_bytes) > 50000 and is_image_clean_and_cinematic(img_bytes):
+                            test_img = Image.open(BytesIO(img_bytes))
+                            test_img.verify()
+                            used_urls.add(img_url)
+                            print(f"   📸 Perfektes Wikimedia-Bild gefunden: '{sq}'")
+                            return img_bytes
+                    except Exception:
+                        continue
+        except Exception as e:
+            print(f"   ⚠️ Wikimedia-Hinweis: {e}")
+            time.sleep(0.3)
     return None
 
 def download_contextual_media(parts, main_topic):
@@ -426,14 +484,32 @@ def download_contextual_media(parts, main_topic):
             clean_q = main_topic
         
         saved_path = None
-        queries = [
-            f"{clean_q} scientific macro photography wide shot realistic {strict_negatives}",
-            f"{clean_q} cinematic nature landscape background high resolution {strict_negatives}",
-            f"{main_topic} documentary scientific nature background {strict_negatives}"
-        ]
-        print(f"🔎 Bildsuche {idx+1}/6 für: '{clean_q}'...")
+        img_bytes = None
         
-        img_bytes = search_ddgs_image_pool(queries, used_urls)
+        if IS_GITHUB_ACTIONS:
+            # ☁️ ONLINE (GitHub Actions): Nutze Wikimedia Commons (Blockierfrei)
+            print(f"☁️ [GitHub] Bildsuche {idx+1}/6 über Wikimedia für: '{clean_q}'...")
+            img_bytes = search_wikimedia_image_pool(clean_q, used_urls)
+            if not img_bytes:
+                img_bytes = search_wikimedia_image_pool(main_topic, used_urls)
+        else:
+            # 💻 LOKAL (Laptop): Nutze DDGS
+            print(f"💻 [Lokal] Bildsuche {idx+1}/6 über DDGS für: '{clean_q}'...")
+            queries = [
+                f"{clean_q} scientific macro photography wide shot realistic {strict_negatives}",
+                f"{clean_q} cinematic nature landscape background high resolution {strict_negatives}",
+                f"{main_topic} documentary scientific nature background {strict_negatives}"
+            ]
+            img_bytes = search_ddgs_image_pool(queries, used_urls)
+            
+        # Sekundärer Versuch über DDGS falls Wikimedia online nichts fand
+        if not img_bytes and IS_GITHUB_ACTIONS:
+            print("   🔄 Wikimedia lieferte kein Trefferbild, versuche DDGS...")
+            queries = [
+                f"{clean_q} scientific macro photography {strict_negatives}",
+                f"{main_topic} nature background {strict_negatives}"
+            ]
+            img_bytes = search_ddgs_image_pool(queries, used_urls)
             
         if not img_bytes:
             print("   ⚠️ Offline-Fallback: Generiere Cinematic-Hintergrund...")
@@ -689,7 +765,6 @@ def generate_synchronized_subtitles(audio_path, video_size, emoji_map, dynamic_h
             end = min(max(start + 0.5, chunk["end"]), max_duration)
         duration = max(0.3, end - start)
         
-        # Verwende die umgebungsspezifische Schriftart und Schriftgröße
         img_path = create_pil_text_image(chunk["text"], FONT_PATH, emoji_map, dynamic_highlights, font_size=SUBTITLE_FONT_SIZE, canvas_width=1000)
         txt_clip = (ImageClip(img_path)
                     .with_duration(duration)
