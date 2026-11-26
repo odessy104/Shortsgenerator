@@ -15,10 +15,12 @@ import numpy as np
 from PIL import Image, ImageEnhance, ImageDraw, ImageFont
 import edge_tts
 import whisper
+
 try:
     from ddgs import DDGS
 except ImportError:
-    DDGS = None  # Verhindert den Absturz
+    DDGS = None
+
 from moviepy import (
     VideoFileClip, 
     AudioFileClip, 
@@ -50,14 +52,12 @@ IS_GITHUB_ACTIONS = os.environ.get("GITHUB_ACTIONS") == "true"
 
 # Dynamische Font-Konfiguration je nach Umgebung
 if IS_GITHUB_ACTIONS:
-    # Linux-Pfad für GitHub Actions Runner
     FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     if not os.path.exists(FONT_PATH):
         FONT_PATH = "DejaVuSans-Bold"
     SUBTITLE_FONT_SIZE = 65
     print("☁️ Umgebung: GitHub Actions (Online) – Verwende Cloud-Schriftgröße 65 & Wikimedia.")
 else:
-    # Lokaler Windows-Pfad für den Laptop
     FONT_PATH = "C:/Windows/Fonts/arialbd.ttf"
     if not os.path.exists(FONT_PATH):
         FONT_PATH = "arial.ttf"
@@ -204,15 +204,16 @@ def proofread_german_grammar(parsed_json, headers):
 def intelligent_web_fallback_script(topic):
     print(f"🌐 Suche echte Web-Fakten für das Fallback-Skript zu '{topic}'...")
     snippets = []
-    try:
-        with DDGS() as ddgs:
-            results = list(ddgs.text(f"{topic} fakten wissenschaft hintergrund", max_results=5))
-            for r in results:
-                body = r.get("body", "")
-                if body:
-                    snippets.append(body)
-    except Exception:
-        pass
+    if DDGS:
+        try:
+            with DDGS() as ddgs:
+                results = list(ddgs.text(f"{topic} fakten wissenschaft hintergrund", max_results=5))
+                for r in results:
+                    body = r.get("body", "")
+                    if body:
+                        snippets.append(body)
+        except Exception:
+            pass
 
     fact_sentences = []
     if snippets:
@@ -328,14 +329,12 @@ def extract_highlights_and_emojis(parts):
     return highlight_set, emoji_map
 
 def get_topics_queue():
-    # 1. Cloud-Priorität: Liest die Themen direkt aus GitHub Actions (THEMEN_LISTE)
     themen_env = os.getenv("THEMEN_LISTE", "").strip()
     if themen_env:
         topics = [t.strip() for t in themen_env.split(",") if t.strip()]
         if topics:
             return topics
 
-    # 2. Lokaler Fallback: Liest die skript.txt aus (für lokale Tests auf dem PC)
     script_path = "skript.txt"
     if not os.path.exists(script_path):
         with open(script_path, "w", encoding="utf-8") as f:
@@ -381,6 +380,8 @@ def is_image_clean_and_cinematic(img_bytes):
         return False
 
 def search_ddgs_image_pool(queries_to_try, used_urls):
+    if not DDGS:
+        return None
     for q in queries_to_try:
         try:
             with DDGS() as ddgs:
@@ -419,7 +420,7 @@ def search_wikimedia_image_pool(query, used_urls):
         f"{clean_q} science",
         f"{clean_q} nature"
     ]
-    headers = {"User-Agent": "YouTubeShortsBot/1.0 (Educational Video Project; contact@example.com)"}
+    headers = {"User-Agent": "YouTubeShortsBot/1.0 (Educational Video Project)"}
     
     for sq in search_queries:
         if not sq:
@@ -445,7 +446,6 @@ def search_wikimedia_image_pool(query, used_urls):
                 image_info = page_info.get("imageinfo", [])
                 if image_info:
                     info = image_info[0]
-                    # Nutze thumburl (1280px breit) falls vorhanden, um riesige 50MB Originaldateien zu vermeiden
                     img_url = info.get("thumburl") or info.get("url")
                     if not img_url or img_url in used_urls:
                         continue
@@ -490,13 +490,11 @@ def download_contextual_media(parts, main_topic):
         img_bytes = None
         
         if IS_GITHUB_ACTIONS:
-            # ☁️ ONLINE (GitHub Actions): Nutze Wikimedia Commons (Blockierfrei)
             print(f"☁️ [GitHub] Bildsuche {idx+1}/6 über Wikimedia für: '{clean_q}'...")
             img_bytes = search_wikimedia_image_pool(clean_q, used_urls)
             if not img_bytes:
                 img_bytes = search_wikimedia_image_pool(main_topic, used_urls)
         else:
-            # 💻 LOKAL (Laptop): Nutze DDGS
             print(f"💻 [Lokal] Bildsuche {idx+1}/6 über DDGS für: '{clean_q}'...")
             queries = [
                 f"{clean_q} scientific macro photography wide shot realistic {strict_negatives}",
@@ -505,8 +503,7 @@ def download_contextual_media(parts, main_topic):
             ]
             img_bytes = search_ddgs_image_pool(queries, used_urls)
             
-        # Sekundärer Versuch über DDGS falls Wikimedia online nichts fand
-        if not img_bytes and IS_GITHUB_ACTIONS:
+        if not img_bytes and IS_GITHUB_ACTIONS and DDGS:
             print("   🔄 Wikimedia lieferte kein Trefferbild, versuche DDGS...")
             queries = [
                 f"{clean_q} scientific macro photography {strict_negatives}",
