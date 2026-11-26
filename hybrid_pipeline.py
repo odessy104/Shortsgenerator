@@ -15,7 +15,7 @@ import numpy as np
 from PIL import Image, ImageEnhance, ImageDraw, ImageFont
 import edge_tts
 import whisper
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 from moviepy import (
     VideoFileClip, 
     AudioFileClip, 
@@ -35,12 +35,31 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 
 # ==========================================
-# ⚙️ KONFIGURATION
+# ⚙️ KONFIGURATION & UMGEBUNGSERKENNUNG
 # ==========================================
 AUTO_UPLOAD = False  # True = Automatischer YouTube-Upload | False = Nur lokales Rendern
 TARGET_FRAMES = 900  # Exakt 30 Sekunden (30 FPS)
 FPS = 30
 TARGET_DURATION = TARGET_FRAMES / FPS
+
+# Erkennen, ob das Skript in GitHub Actions (Online) oder lokal läuft
+IS_GITHUB_ACTIONS = os.environ.get("GITHUB_ACTIONS") == "true"
+
+# Dynamische Font-Konfiguration je nach Umgebung
+if IS_GITHUB_ACTIONS:
+    # Linux-Pfad für GitHub Actions Runner
+    FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+    if not os.path.exists(FONT_PATH):
+        FONT_PATH = "DejaVuSans-Bold"
+    SUBTITLE_FONT_SIZE = 65
+    print("☁️ Umgebung: GitHub Actions (Online) – Verwende Cloud-Schriftgröße 65.")
+else:
+    # Lokaler Windows-Pfad für den Laptop
+    FONT_PATH = "C:/Windows/Fonts/arialbd.ttf"
+    if not os.path.exists(FONT_PATH):
+        FONT_PATH = "arial.ttf"
+    SUBTITLE_FONT_SIZE = 48
+    print("💻 Umgebung: Lokaler Laptop – Verwende lokale Schriftgröße 48.")
 
 GROQ_API_KEY = "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"
 GROQ_MODEL = "openai/gpt-oss-120b"
@@ -306,14 +325,12 @@ def extract_highlights_and_emojis(parts):
     return highlight_set, emoji_map
 
 def get_topics_queue():
-    # 1. Cloud-Priorität: Liest die Themen direkt aus GitHub Actions (THEMEN_LISTE)
     themen_env = os.getenv("THEMEN_LISTE", "").strip()
     if themen_env:
         topics = [t.strip() for t in themen_env.split(",") if t.strip()]
         if topics:
             return topics
 
-    # 2. Lokaler Fallback: Liest die skript.txt aus (für lokale Tests auf dem PC)
     script_path = "skript.txt"
     if not os.path.exists(script_path):
         with open(script_path, "w", encoding="utf-8") as f:
@@ -657,9 +674,7 @@ def generate_synchronized_subtitles(audio_path, video_size, emoji_map, dynamic_h
         chunks[0]["start"] = 0.0
     subtitle_clips = []
     w, h = video_size
-    font_path = "C:/Windows/Fonts/arialbd.ttf"
-    if not os.path.exists(font_path):
-        font_path = "arial.ttf"
+
     for i in range(len(chunks)):
         chunk = chunks[i]
         start = chunk["start"]
@@ -673,7 +688,9 @@ def generate_synchronized_subtitles(audio_path, video_size, emoji_map, dynamic_h
         else:
             end = min(max(start + 0.5, chunk["end"]), max_duration)
         duration = max(0.3, end - start)
-        img_path = create_pil_text_image(chunk["text"], font_path, emoji_map, dynamic_highlights, font_size=48, canvas_width=1000)
+        
+        # Verwende die umgebungsspezifische Schriftart und Schriftgröße
+        img_path = create_pil_text_image(chunk["text"], FONT_PATH, emoji_map, dynamic_highlights, font_size=SUBTITLE_FONT_SIZE, canvas_width=1000)
         txt_clip = (ImageClip(img_path)
                     .with_duration(duration)
                     .with_start(start)
@@ -702,15 +719,14 @@ def get_outro_clip(video_size, duration=3.5, start_time=0.0):
             return clip.subclipped(0, min(duration, clip.duration)).with_start(start_time).with_position(('center', h * 0.40))
         except Exception:
             pass
-    font_path = "C:/Windows/Fonts/arialbd.ttf"
-    if not os.path.exists(font_path):
-        font_path = "arial.ttf"
+
     try:
-        font = ImageFont.truetype(font_path, 48)
-        small_font = ImageFont.truetype(font_path, 34)
+        font = ImageFont.truetype(FONT_PATH, 48)
+        small_font = ImageFont.truetype(FONT_PATH, 34)
     except:
         font = ImageFont.load_default()
         small_font = font
+
     img_w, img_h = 880, 240
     img = Image.new("RGBA", (img_w, img_h), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
