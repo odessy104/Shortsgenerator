@@ -66,7 +66,7 @@ else:
 
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "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")
 GROQ_MODEL = "openai/gpt-oss-120b"
-GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_URL = "[https://api.groq.com/openai/v1/chat/completions](https://api.groq.com/openai/v1/chat/completions)"
 
 FALLBACK_EMOJI_MAP = {
     "WELTALL": "🌌", "RAUM": "🚀", "ZEIT": "⏳", "GEFAHR": "⚠️", 
@@ -268,23 +268,23 @@ def generate_full_script_with_cloud_ai(topic_or_text):
         "STIL: Verwende absolut natürliches, elegantes Deutsch im Arte/Netflix-Dokumentationsstil. Vermeide hölzerne KI-Formulierungen wie 'erreicht einen Fakt' völlig.\n"
         "WICHTIG für 'viral_title': Erstelle einen extrem klickstarken, seriösen Doku-Titel mit #shorts am Ende. Keine billigen Clickbait-Floskeln.\n"
         "WICHTIG für Emphasis-Tags: Setze in <emphasis level=\"strong\">...</emphasis> immer ein echtes, wichtiges Hauptwort ein (z.B. MYSTERIUM oder KERN) und NIEMALS das Wort 'WORT'.\n"
-        "WICHTIG für 'search_keyword': Generiere präzise, eindeutige ENGLISCHE Suchbegriffe für Makro- und Weitwinkel-Doku-Fotos (z.B. 'deep ocean hydrothermal vent macro photography' oder 'galaxy nebula telescope photography'). Vermeide doppeldeutige Wörter und schließe Menschen, Sportler, Fußballer, Hochzeiten und Food strikt aus.\n"
+        "WICHTIG für 'search_keyword': Generiere präzise, eindeutige ENGLISCHE Suchbegriffe, die direkt zum genauen Thema passen (z.B. für das Gedächtnis: 'human brain memory neuroscience visualization', für Tiere: 'animal superpower wildlife macro photography'). Schließe Menschen, Sportler, Hochzeiten und Food strikt aus.\n"
         "Antworte AUSSCHLIESSLICH als valides JSON-Objekt im exakten Format unten:\n\n"
         "{\n"
         "  \"mood\": \"epic\",\n"
         "  \"viral_title\": \"Dein starker Doku-Titel #shorts\",\n"
         "  \"parts\": [\n"
-        "    {\"text\": \"Hook mit <emphasis level=\\\"strong\\\">GEHEIMNIS</emphasis> (max. 10 Wörter)\", \"search_keyword\": \"english scientific macro query 1\"},\n"
-        "    {\"text\": \"Fakt mit <emphasis level=\\\"strong\\\">KERN</emphasis> (max. 10 Wörter)\", \"search_keyword\": \"english scientific wide shot query 2\"},\n"
-        "    {\"text\": \"Fakt mit <emphasis level=\\\"strong\\\">PHÄNOMEN</emphasis> (max. 10 Wörter)\", \"search_keyword\": \"english scientific nature query 3\"},\n"
-        "    {\"text\": \"Fakt mit <emphasis level=\\\"strong\\\">FORSCHUNG</emphasis> (max. 10 Wörter)\", \"search_keyword\": \"english scientific macro query 4\"},\n"
-        "    {\"text\": \"Fakt mit <emphasis level=\\\"strong\\\">ENERGIE</emphasis> (max. 10 Wörter)\", \"search_keyword\": \"english scientific wide shot query 5\"},\n"
-        "    {\"text\": \"Cliffhanger mit <emphasis level=\\\"strong\\\">RÄTSEL</emphasis> (max. 10 Wörter)\", \"search_keyword\": \"english cinematic nature query 6\"}\n"
+        "    {\"text\": \"Hook mit <emphasis level=\\\"strong\\\">GEHEIMNIS</emphasis> (max. 10 Wörter)\", \"search_keyword\": \"english specific scientific query 1\"},\n"
+        "    {\"text\": \"Fakt mit <emphasis level=\\\"strong\\\">KERN</emphasis> (max. 10 Wörter)\", \"search_keyword\": \"english specific scientific query 2\"},\n"
+        "    {\"text\": \"Fakt mit <emphasis level=\\\"strong\\\">PHÄNOMEN</emphasis> (max. 10 Wörter)\", \"search_keyword\": \"english specific scientific query 3\"},\n"
+        "    {\"text\": \"Fakt mit <emphasis level=\\\"strong\\\">FORSCHUNG</emphasis> (max. 10 Wörter)\", \"search_keyword\": \"english specific scientific query 4\"},\n"
+        "    {\"text\": \"Fakt mit <emphasis level=\\\"strong\\\">ENERGIE</emphasis> (max. 10 Wörter)\", \"search_keyword\": \"english specific scientific query 5\"},\n"
+        "    {\"text\": \"Cliffhanger mit <emphasis level=\\\"strong\\\">RÄTSEL</emphasis> (max. 10 Wörter)\", \"search_keyword\": \"english specific scientific query 6\"}\n"
         "  ]\n"
         "}"
     )
 
-    user_prompt = f"Thema: {topic_or_text}. Erstelle das 6-Teile JSON in perfektem Doku-Stil."
+    user_prompt = f"Thema: {topic_or_text}. Erstelle das 6-Teile JSON exakt zu diesem spezifischen Thema im Doku-Stil."
     
     payload = {
         "model": GROQ_MODEL,
@@ -412,24 +412,22 @@ def search_ddgs_image_pool(queries_to_try, used_urls):
             continue
     return None
 
-def search_wikimedia_image_pool(query, used_urls):
+def search_wikimedia_image_pool(query, main_topic, used_urls):
     search_url = "https://commons.wikimedia.org/w/api.php"
-    # Suchbegriff auf die 2-3 wichtigsten Schlagwörter kürzen, damit Wikimedia überhaupt Treffer findet
     clean_q = re.sub(r'\b(macro|photography|wide shot|angle|realistic|cinematic|background|high resolution|scientific|visualization)\b', '', query, flags=re.IGNORECASE).strip()
     words = clean_q.split()
     short_q = " ".join(words[:3]) if len(words) > 3 else clean_q
     
-    search_queries = []
-    for candidate in [short_q, " ".join(words[:2]), words[0] if words else "science"]:
-        if candidate and candidate not in search_queries:
-            search_queries.append(candidate)
-
-    # Wikimedia-konformer User-Agent (verhindert 403/429 Blockaden)
+    # Kombiniere spezifisches Keyword und Hauptthema für treffgenauere Wikimedia-Suchergebnisse
+    search_queries = [short_q, f"{main_topic} {words[0] if words else ''}".strip(), main_topic]
+    
     headers = {
         "User-Agent": "ScienceShortsGenerator/1.0 (https://github.com; contact@scienceshorts.local) Python-Requests"
     }
     
     for sq in search_queries:
+        if not sq:
+            continue
         params = {
             "action": "query",
             "generator": "search",
@@ -442,10 +440,9 @@ def search_wikimedia_image_pool(query, used_urls):
             "format": "json"
         }
         try:
-            time.sleep(0.8)  # Wichtig: Pause gegen Wikimedia Rate-Limit
+            time.sleep(0.6)
             response = requests.get(search_url, params=params, headers=headers, timeout=10)
             if response.status_code != 200 or not response.text.strip():
-                time.sleep(1.5)
                 continue
             data = response.json()
             pages = data.get("query", {}).get("pages", {})
@@ -461,7 +458,7 @@ def search_wikimedia_image_pool(query, used_urls):
                     if is_url_blocked_watermark_or_thumbnail(img_url, title):
                         continue
                     try:
-                        time.sleep(0.4)
+                        time.sleep(0.3)
                         resp = requests.get(img_url, timeout=8, headers=headers)
                         if resp.status_code != 200:
                             continue
@@ -476,7 +473,7 @@ def search_wikimedia_image_pool(query, used_urls):
                         continue
         except Exception as e:
             print(f"   ⚠️ Wikimedia-Hinweis: {e}")
-            time.sleep(1.5)
+            time.sleep(1.0)
     return None
 
 def download_contextual_media(parts, main_topic):
@@ -502,16 +499,13 @@ def download_contextual_media(parts, main_topic):
         img_bytes = None
         
         if IS_GITHUB_ACTIONS:
-            print(f"☁️ [GitHub] Bildsuche {idx+1}/6 über Wikimedia für: '{clean_q}'...")
-            img_bytes = search_wikimedia_image_pool(clean_q, used_urls)
-            if not img_bytes:
-                img_bytes = search_wikimedia_image_pool(main_topic, used_urls)
+            print(f"☁️ [GitHub] Bildsuche {idx+1}/6 über Wikimedia für Thema '{main_topic}' / Keyword: '{clean_q}'...")
+            img_bytes = search_wikimedia_image_pool(clean_q, main_topic, used_urls)
         else:
             print(f"💻 [Lokal] Bildsuche {idx+1}/6 über DDGS für: '{clean_q}'...")
             queries = [
                 f"{clean_q} scientific macro photography wide shot realistic {strict_negatives}",
-                f"{clean_q} cinematic nature landscape background high resolution {strict_negatives}",
-                f"{main_topic} documentary scientific nature background {strict_negatives}"
+                f"{main_topic} documentary scientific background high resolution {strict_negatives}"
             ]
             img_bytes = search_ddgs_image_pool(queries, used_urls)
             
@@ -825,7 +819,7 @@ def get_outro_clip(video_size, duration=3.5, start_time=0.0):
     return ImageClip(temp_path).with_duration(duration).with_start(start_time).with_position(('center', h * 0.42))
 
 def upload_short_to_youtube(video_path, title, description="#shorts #science #funfacts"):
-    SCOPES = ["[https://www.googleapis.com/auth/youtube.upload](https://www.googleapis.com/auth/youtube.upload)"]
+    SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
     creds = None
     if os.path.exists("token.pickle"):
         with open("token.pickle", "rb") as token:
@@ -1057,12 +1051,19 @@ def render_short(script_data, topic, spoken_hint="", index_num=1):
         final_video.close()
     except:
         pass
+        
+    # Speichere das Ergebnis in der result.json für die Web-App
+    ergebnis = {
+        "title": viral_title,
+        "status": "fertig"
+    }
+    with open("result.json", "w", encoding="utf-8") as f:
+        json.dump(ergebnis, f, ensure_ascii=False, indent=4)
+        
     print(f"\n🚀 BOOM! Short #{index_num} ist fertig: {output_path}")
     print(f"\n📋 DEIN TITEL:\n{viral_title}\n")
     if AUTO_UPLOAD:
         upload_short_to_youtube(output_path, viral_title)
-
-# ... (dein restlicher Code bis zum Ende des Skripts)
 
 if __name__ == "__main__":
     setup_directories()
@@ -1073,13 +1074,3 @@ if __name__ == "__main__":
         full_text = " ".join([p["text"] for p in script_data["parts"]])
         clean_spoken = asyncio.run(generate_audio_async(full_text))
         render_short(script_data, topic, spoken_hint=clean_spoken, index_num=idx)
-        
-        # --- NEU: Ergebnis als result.json für die Web-App speichern ---
-        viral_title = script_data.get("viral_title", f"{topic} #shorts")
-        ergebnis = {
-            "title": viral_title,
-            "status": "fertig"
-        }
-        with open("result.json", "w", encoding="utf-8") as f:
-            json.dump(ergebnis, f, ensure_ascii=False, indent=4)
-        print(f"📄 result.json erfolgreich erstellt mit Titel: {viral_title}")
