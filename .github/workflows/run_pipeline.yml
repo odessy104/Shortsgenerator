@@ -41,7 +41,7 @@ jobs:
         run: |
           python hybrid_pipeline.py
 
-     - name: Release fertige Shorts hochladen
+      - name: Release fertige Shorts hochladen
         uses: ncipollo/release-action@v1
         with:
           artifacts: "output/*.mp4"
