@@ -1081,9 +1081,16 @@ def render_short(script_data, topic, spoken_hint="", index_num=1):
 if __name__ == "__main__":
     setup_directories()
     topics = get_topics_queue()
+    total_topics = len(topics)
+    
     for idx, topic in enumerate(topics, 1):
-        print(f"\n================ 🚀 VERARBEITE THEMA {idx}/{len(topics)}: '{topic}' ================")
+        prozent = int((idx / total_topics) * 100)
+        print(f"\n================ 🚀 FORTSCHRITT: {prozent}% (Short {idx} von {total_topics}) ================")
+        print(f"📌 Aktuelles Thema: '{topic}'")
+        
         script_data = generate_full_script_with_cloud_ai(topic)
         full_text = " ".join([p["text"] for p in script_data["parts"]])
         clean_spoken = asyncio.run(generate_audio_async(full_text))
         render_short(script_data, topic, spoken_hint=clean_spoken, index_num=idx)
+        
+    print(f"\n🎉 Alle {total_topics} Shorts erfolgreich generiert! (100%)")
