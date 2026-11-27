@@ -179,7 +179,6 @@
         const GITHUB_REPO = "Shortsgenerator";
         const WORKFLOW_FILE = "run_pipeline.yml";
 
-        // Token beim Laden der Seite vorausfüllen falls vorhanden
         window.onload = function() {
             let savedToken = localStorage.getItem("gh_token");
             if (savedToken) {
@@ -246,9 +245,10 @@
 
         async function checkResults() {
             try {
-                let response = await fetch('result.json?_=' + new Date().getTime());
-                if (response.ok) {
-                    let data = await response.json();
+                let response = `result.json?_=` + new Date().getTime();
+                let res = await fetch(response);
+                if (res.ok) {
+                    let data = await res.json();
                     let container = document.getElementById('video-list-container');
                     container.innerHTML = "";
 
@@ -269,7 +269,7 @@
                     });
                 }
             } catch (e) {
-                // Keine Aktion erforderlich, falls result.json noch nicht existiert
+                // Keine Aktion
             }
         }
 
