@@ -79,11 +79,32 @@ FALLBACK_EMOJI_MAP = {
 }
 
 def setup_directories():
+    if os.path.exists("result.json"):
+        try:
+            os.remove("result.json")
+            print("🗑️ Alte result.json automatisch zurückgesetzt.")
+        except Exception as e:
+            print(f"⚠️ Konnte result.json nicht löschen: {e}")
+
     os.makedirs("input_clips", exist_ok=True)
     os.makedirs("background_music", exist_ok=True)
     os.makedirs("sfx", exist_ok=True)
     os.makedirs("output", exist_ok=True)
     ensure_builtin_cinematic_audio()
+
+def update_pipeline_status(progress_pct, current_step_text):
+    """Schreibt den aktuellen Fortschritt in eine status.json für die Web-App."""
+    status_data = {
+        "running": True,
+        "progress": progress_pct,
+        "message": current_step_text,
+        "timestamp": time.time()
+    }
+    try:
+        with open("status.json", "w", encoding="utf-8") as f:
+            json.dump(status_data, f, ensure_ascii=False)
+    except Exception:
+        pass
 
 def ensure_builtin_cinematic_audio():
     sample_rate = 44100
@@ -1085,6 +1106,11 @@ if __name__ == "__main__":
     
     for idx, topic in enumerate(topics, 1):
         prozent = int((idx / total_topics) * 100)
+        status_text = f"Generiere Short {idx} von {total_topics} ({prozent}%): {topic}"
+        
+        # Status für die Web-App live speichern (auch beim Schließen sichtbar)
+        update_pipeline_status(prozent, status_text)
+        
         print(f"\n================ 🚀 FORTSCHRITT: {prozent}% (Short {idx} von {total_topics}) ================")
         print(f"📌 Aktuelles Thema: '{topic}'")
         
@@ -1093,4 +1119,11 @@ if __name__ == "__main__":
         clean_spoken = asyncio.run(generate_audio_async(full_text))
         render_short(script_data, topic, spoken_hint=clean_spoken, index_num=idx)
         
+    # Abschluss-Status in status.json schreiben
+    try:
+        with open("status.json", "w", encoding="utf-8") as f:
+            json.dump({"running": False, "progress": 100, "message": "Alle Shorts erfolgreich generiert!"}, f)
+    except:
+        pass
+
     print(f"\n🎉 Alle {total_topics} Shorts erfolgreich generiert! (100%)")
