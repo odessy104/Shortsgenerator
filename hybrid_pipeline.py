@@ -434,7 +434,7 @@ def search_ddgs_image_pool(queries_to_try, used_urls):
     return None
 
 def search_wikimedia_image_pool(query, main_topic, used_urls):
-    search_url = "[https://commons.wikimedia.org/w/api.php](https://commons.wikimedia.org/w/api.php)"
+    search_url = "https://commons.wikimedia.org/w/api.php"
     clean_q = re.sub(r'\b(macro|photography|wide shot|angle|realistic|cinematic|background|high resolution|scientific|visualization)\b', '', query, flags=re.IGNORECASE).strip()
     words = clean_q.split()
     short_q = " ".join(words[:3]) if len(words) > 3 else clean_q
@@ -442,7 +442,7 @@ def search_wikimedia_image_pool(query, main_topic, used_urls):
     search_queries = [short_q, f"{main_topic} {words[0] if words else ''}".strip(), main_topic]
     
     headers = {
-        "User-Agent": "ScienceShortsGenerator/1.0 ([https://github.com](https://github.com); contact@scienceshorts.local) Python-Requests"
+        "User-Agent": "ScienceShortsGenerator/1.0 (https://github.com; contact@scienceshorts.local) Python-Requests"
     }
     
     for sq in search_queries:
@@ -461,6 +461,7 @@ def search_wikimedia_image_pool(query, main_topic, used_urls):
         }
         try:
             time.sleep(0.6)
+            # Hier war der Fehler: Die URL wird nun absolut sauber ohne Markdown-Klammern aufgerufen
             response = requests.get(search_url, params=params, headers=headers, timeout=10)
             if response.status_code != 200 or not response.text.strip():
                 continue
