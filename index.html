@@ -189,11 +189,8 @@
                 document.getElementById("tokenInput").value = savedToken;
             }
 
-            // Sofort den lokal gespeicherten Status anzeigen, falls die App neu geladen wurde
-            let savedStatus = localStorage.getItem("pipeline_active_status");
-            if (savedStatus) {
-                document.getElementById("statusMessage").innerHTML = `⏳ <b>Pipeline läuft aktiv:</b> ${savedStatus}`;
-            }
+            // Statusfeld standardmäßig neutral auf "Bereit." setzen
+            document.getElementById("statusMessage").innerText = "Bereit.";
 
             checkResults();
             checkPipelineStatus();
@@ -272,11 +269,13 @@
                         localStorage.removeItem("pipeline_active_status");
                         if (status.progress === 100) {
                             statusDiv.innerHTML = "✅ Alle Shorts erfolgreich generiert!";
+                        } else {
+                            statusDiv.innerText = "Bereit.";
                         }
                     }
                 }
             } catch (e) {
-                // Status-Datei existiert noch nicht
+                // Keine status.json vorhanden
             }
         }
 
