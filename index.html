@@ -3,143 +3,172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube Shorts Generator</title>
+    <title>🎬 YouTube Shorts Control Center</title>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #121212;
-            color: #e0e0e0;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            box-sizing: border-box;
-        }
-        .container {
-            background: #1e1e1e;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            width: 100%;
-            max-width: 400px;
-            text-align: center;
-            box-sizing: border-box;
-        }
-        h1 {
-            font-size: 1.5rem;
-            margin-bottom: 10px;
-            color: #ffffff;
-        }
-        p {
-            font-size: 0.85rem;
-            color: #888;
-            margin-bottom: 20px;
-        }
-        textarea {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 15px;
-            border-radius: 8px;
-            border: 1px solid #444;
-            background: #2a2a2a;
-            color: white;
-            font-family: inherit;
-            font-size: 0.95rem;
-            resize: vertical;
-            box-sizing: border-box;
-        }
-        textarea:focus {
-            outline: none;
-            border-color: #ff0033;
-        }
-        button {
-            background-color: #ff0033;
-            color: white;
-            border: none;
-            padding: 15px 20px;
-            font-size: 1rem;
-            font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
-            width: 100%;
-            transition: background 0.2s;
-        }
-        button:hover {
-            background-color: #cc0029;
-        }
-        #status {
-            margin-top: 15px;
-            font-size: 0.9rem;
-            color: #a0a0a0;
-        }
+        :root { --bg: #0f121a; --card: #181d2c; --accent: #ffe100; --text: #ffffff; --text-muted: #94a3b8; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 600px; }
+        .card { background: var(--card); border-radius: 16px; padding: 24px; margin-bottom: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); }
+        h1 { font-size: 1.5rem; margin-top: 0; color: var(--accent); display: flex; align-items: center; gap: 10px; }
+        label { display: block; margin-bottom: 8px; color: var(--text-muted); font-size: 0.9rem; }
+        input, textarea { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #2d3748; background: #0b0e14; color: #fff; font-size: 1rem; box-sizing: border-box; margin-bottom: 16px; }
+        textarea { height: 100px; resize: vertical; }
+        button { background: var(--accent); color: #000; border: none; padding: 14px 20px; border-radius: 8px; font-weight: bold; font-size: 1rem; width: 100%; cursor: pointer; transition: opacity 0.2s; }
+        button:hover { opacity: 0.9; }
+        .status-box { padding: 12px; border-radius: 8px; background: #0b0e14; margin-top: 15px; font-family: monospace; font-size: 0.9rem; border-left: 4px solid var(--accent); }
+        .video-grid { display: grid; gap: 15px; margin-top: 15px; }
+        video { width: 100%; border-radius: 12px; background: #000; max-height: 450px; }
+        .settings-toggle { font-size: 0.85rem; color: var(--text-muted); cursor: pointer; margin-bottom: 15px; display: inline-block; }
+        .settings-toggle:hover { color: var(--accent); }
     </style>
 </head>
 <body>
-
     <div class="container">
-        <h1>Shorts Cloud Generator</h1>
-        <p>Trage deine Themen ein (eines pro Zeile oder mit Komma getrennt):</p>
-        
-        <textarea id="themenInput" rows="5" placeholder="Künstliche Intelligenz&#10;Raumfahrt&#10;Psychologie"></textarea>
-        
-        <button onclick="triggerGitHubWorkflow()">Shorts in der Cloud starten 🚀</button>
-        
-        <div id="status">Bereit</div>
+        <div class="card">
+            <h1>🎬 Shorts Generator Hub</h1>
+            
+            <span class="settings-toggle" onclick="toggleSettings()">⚙️ GitHub Einstellungen anzeigen</span>
+            <div id="settingsPanel" style="display: none;">
+                <label>GitHub Benutzername:</label>
+                <input type="text" id="ghUser" placeholder="Dein GitHub Username">
+                <label>Repository Name:</label>
+                <input type="text" id="ghRepo" placeholder="Shortsgenerator">
+                <label>GitHub Personal Access Token (mit 'repo' & 'workflow' Berechtigung):</label>
+                <input type="password" id="ghToken" placeholder="ghp_...">
+                <button onclick="saveSettings()" style="background: #2d3748; color: #fff; margin-bottom: 15px; padding: 8px;">Einstellungen speichern</button>
+            </div>
+
+            <label>Wissenschaftliche Themen (kommagetrennt):</label>
+            <textarea id="topicsInput">Magnetfeld der Erde und Tiere, Künstliche Intelligenz, Warum wir Träume vergessen, Quantencomputer, Superfluides Helium</textarea>
+            
+            <button onclick="startPipeline()">🚀 Pipeline auf GitHub starten</button>
+            
+            <div id="statusOutput" class="status-box" style="display: none;">Status: Bereit...</div>
+        </div>
+
+        <div class="card" id="resultsCard" style="display: none;">
+            <h1>📥 Generierte Shorts (Downloads & Vorschau)</h1>
+            <div id="videosContainer" class="video-grid"></div>
+        </div>
     </div>
 
     <script>
-        async function triggerGitHubWorkflow() {
-            // 1. Trage hier deine echten GitHub-Daten ein:
-            const GITHUB_TOKEN = "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";
-            const OWNER = "odessy104"; 
-            const REPO = "Shortsgenerator";
-            
-            const statusDiv = document.getElementById("status");
-            const rawInput = document.getElementById("themenInput").value;
-            
-            // Wandelt Zeilenumbrüche in Kommas um und entfernt leere Zeilen
-            const formatierteThemen = rawInput
-                .split('\n')
-                .map(zeile => zeile.trim())
-                .filter(zeile => zeile.length > 0)
-                .join(', ') || "Künstliche Intelligenz";
-            
-            statusDiv.innerText = "Sende Anfrage an GitHub...";
+        function toggleSettings() {
+            const p = document.getElementById('settingsPanel');
+            p.style.display = p.style.display === 'none' ? 'block' : 'none';
+        }
 
-            const url = `https://api.github.com/repos/${OWNER}/${REPO}/actions/workflows/run_pipeline.yml/dispatches`;
+        function saveSettings() {
+            localStorage.setItem('ghUser', document.getElementById('ghUser').value);
+            localStorage.setItem('ghRepo', document.getElementById('ghRepo').value);
+            localStorage.setItem('ghToken', document.getElementById('ghToken').value);
+            alert('Einstellungen gespeichert!');
+        }
+
+        window.onload = function() {
+            if(localStorage.getItem('ghUser')) document.getElementById('ghUser').value = localStorage.getItem('ghUser');
+            if(localStorage.getItem('ghRepo')) document.getElementById('ghRepo').value = localStorage.getItem('ghRepo');
+            if(localStorage.getItem('ghToken')) document.getElementById('ghToken').value = localStorage.getItem('ghToken');
+        }
+
+        async function startPipeline() {
+            const user = document.getElementById('ghUser').value;
+            const repo = document.getElementById('ghRepo').value;
+            const token = document.getElementById('ghToken').value;
+            const topics = document.getElementById('topicsInput').value;
+            const statusBox = document.getElementById('statusOutput');
+
+            if(!user || !repo || !token) {
+                alert('Bitte trage in den Einstellungen deinen GitHub User, Repo und Token ein!');
+                toggleSettings();
+                return;
+            }
+
+            statusBox.style.display = 'block';
+            statusBox.innerHTML = '⏳ Sende Start-Signal an GitHub Actions...';
 
             try {
-                const response = await fetch(url, {
+                const res = await fetch(`https://api.github.com/repos/${user}/${repo}/actions/workflows/run_pipeline.yml/dispatches`, {
                     method: 'POST',
                     headers: {
-                        'Authorization': `token ${GITHUB_TOKEN}`,
+                        'Authorization': `token ${token}`,
                         'Accept': 'application/vnd.github.v3+json',
-                        'Content-Type': 'application/json',
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        ref: 'main', // Dein Haupt-Branch (z.B. main oder master)
-                        inputs: {
-                            themen: formatierteThemen
-                        }
+                        ref: 'main',
+                        inputs: { themes: topics }
                     })
                 });
 
-                if (response.ok) {
-                    statusDiv.innerText = "Erfolgreich gestartet! 🚀 Schau in GitHub Actions.";
-                    alert("Shorts-Generierung gestartet für:\n" + formatierteThemen);
+                if(res.status === 204) {
+                    statusBox.innerHTML = '✅ Pipeline erfolgreich auf GitHub gestartet! Überwache Status...';
+                    pollWorkflowStatus(user, repo, token);
                 } else {
-                    statusDiv.innerText = "Fehler beim Starten (Code: " + response.status + ").";
-                    alert("Fehler beim Starten des Workflows. Überprüfe Token, Repo-Namen und Branch.");
+                    const err = await res.text();
+                    statusBox.innerHTML = `❌ Fehler beim Start: ${err}`;
                 }
-            } catch (error) {
-                console.error("Netzwerkfehler:", error);
-                statusDiv.innerText = "Netzwerkfehler aufgetreten.";
+            } catch(e) {
+                statusBox.innerHTML = `❌ Netzwerkfehler: ${e.message}`;
+            }
+        }
+
+        async function pollWorkflowStatus(user, repo, token) {
+            const statusBox = document.getElementById('statusOutput');
+            const interval = setInterval(async () => {
+                try {
+                    const res = await fetch(`https://api.github.com/repos/${user}/${repo}/actions/runs?per_page=1`, {
+                        headers: { 'Authorization': `token ${token}` }
+                    });
+                    const data = await res.json();
+                    if(data.workflow_runs && data.workflow_runs.length > 0) {
+                        const run = data.workflow_runs[0];
+                        statusBox.innerHTML = `Status: <b>${run.status}</b> (${run.conclusion || 'läuft...'})`;
+                        
+                        if(run.status === 'completed') {
+                            clearInterval(interval);
+                            if(run.conclusion === 'success') {
+                                statusBox.innerHTML = '🎉 Pipeline beendet! Lade fertige Videos...';
+                                loadReleases(user, repo, token);
+                            } else {
+                                statusBox.innerHTML = '⚠️ Pipeline mit Fehlern beendet. Schau in die GitHub Actions Logs.';
+                            }
+                        }
+                    }
+                } catch(e) {
+                    console.error(e);
+                }
+            }, 5000);
+        }
+
+        async function loadReleases(user, repo, token) {
+            try {
+                const res = await fetch(`https://api.github.com/repos/${user}/${repo}/releases`, {
+                    headers: { 'Authorization': `token ${token}` }
+                });
+                const releases = await res.json();
+                if(releases.length > 0) {
+                    const latestRelease = releases[0];
+                    const container = document.getElementById('videosContainer');
+                    container.innerHTML = '';
+                    
+                    latestRelease.assets.forEach(asset => {
+                        if(asset.name.endsWith('.mp4')) {
+                            container.innerHTML += `
+                                <div>
+                                    <p><b>${asset.name}</b></p>
+                                    <video controls src="${asset.browser_download_url}"></video>
+                                    <br><a href="${asset.browser_download_url}" download style="color: var(--accent);">📥 Video herunterladen</a>
+                                </div>
+                            `;
+                        }
+                    });
+                    document.getElementById('resultsCard').style.display = 'block';
+                }
+            } catch(e) {
+                console.error(e);
             }
         }
     </script>
-
 </body>
 </html>
