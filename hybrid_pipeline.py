@@ -1051,15 +1051,30 @@ def render_short(script_data, topic, spoken_hint="", index_num=1):
         final_video.close()
     except:
         pass
-        
-    # Speichere das Ergebnis in der result.json für die Web-App
-    ergebnis = {
+   
+        # Speichere alle Videos als Liste für die Web-App
+    results_list = []
+    if os.path.exists("result.json"):
+        try:
+            with open("result.json", "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, list):
+                    results_list = data
+                elif isinstance(data, dict) and "videos" in data:
+                    results_list = data["videos"]
+        except:
+            pass
+
+    results_list.append({
         "title": viral_title,
+        "index": index_num,
+        "tag": f"short-{index_num}",
         "status": "fertig"
-    }
+    })
+
     with open("result.json", "w", encoding="utf-8") as f:
-        json.dump(ergebnis, f, ensure_ascii=False, indent=4)
-        
+        json.dump({"videos": results_list}, f, ensure_ascii=False, indent=4)
+
     print(f"\n🚀 BOOM! Short #{index_num} ist fertig: {output_path}")
     print(f"\n📋 DEIN TITEL:\n{viral_title}\n")
     if AUTO_UPLOAD:
@@ -1074,3 +1089,4 @@ if __name__ == "__main__":
         full_text = " ".join([p["text"] for p in script_data["parts"]])
         clean_spoken = asyncio.run(generate_audio_async(full_text))
         render_short(script_data, topic, spoken_hint=clean_spoken, index_num=idx)
+        
