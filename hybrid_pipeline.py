@@ -414,30 +414,39 @@ def search_ddgs_image_pool(queries_to_try, used_urls):
 
 def search_wikimedia_image_pool(query, used_urls):
     search_url = "https://commons.wikimedia.org/w/api.php"
-    clean_q = re.sub(r'\b(macro|photography|wide shot|realistic|cinematic|background|high resolution)\b', '', query, flags=re.IGNORECASE).strip()
-    search_queries = [
-        clean_q,
-        f"{clean_q} science",
-        f"{clean_q} nature"
-    ]
-    headers = {"User-Agent": "YouTubeShortsBot/1.0 (Educational Video Project)"}
+    # Suchbegriff auf die 2-3 wichtigsten Schlagwörter kürzen, damit Wikimedia überhaupt Treffer findet
+    clean_q = re.sub(r'\b(macro|photography|wide shot|angle|realistic|cinematic|background|high resolution|scientific|visualization)\b', '', query, flags=re.IGNORECASE).strip()
+    words = clean_q.split()
+    short_q = " ".join(words[:3]) if len(words) > 3 else clean_q
+    
+    search_queries = []
+    for candidate in [short_q, " ".join(words[:2]), words[0] if words else "science"]:
+        if candidate and candidate not in search_queries:
+            search_queries.append(candidate)
+
+    # Wikimedia-konformer User-Agent (verhindert 403/429 Blockaden)
+    headers = {
+        "User-Agent": "ScienceShortsGenerator/1.0 (https://github.com; contact@scienceshorts.local) Python-Requests"
+    }
     
     for sq in search_queries:
-        if not sq:
-            continue
         params = {
             "action": "query",
             "generator": "search",
             "gsrsearch": f"filetype:bitmap {sq}",
             "gsrnamespace": "6",
-            "gsrlimit": "15",
+            "gsrlimit": "12",
             "prop": "imageinfo",
             "iiprop": "url|size",
             "iiurlwidth": "1280",
             "format": "json"
         }
         try:
-            response = requests.get(search_url, params=params, headers=headers, timeout=8)
+            time.sleep(0.8)  # Wichtig: Pause gegen Wikimedia Rate-Limit
+            response = requests.get(search_url, params=params, headers=headers, timeout=10)
+            if response.status_code != 200 or not response.text.strip():
+                time.sleep(1.5)
+                continue
             data = response.json()
             pages = data.get("query", {}).get("pages", {})
             
@@ -452,9 +461,12 @@ def search_wikimedia_image_pool(query, used_urls):
                     if is_url_blocked_watermark_or_thumbnail(img_url, title):
                         continue
                     try:
-                        resp = requests.get(img_url, timeout=6, headers=headers)
+                        time.sleep(0.4)
+                        resp = requests.get(img_url, timeout=8, headers=headers)
+                        if resp.status_code != 200:
+                            continue
                         img_bytes = resp.content
-                        if len(img_bytes) > 50000 and is_image_clean_and_cinematic(img_bytes):
+                        if len(img_bytes) > 40000 and is_image_clean_and_cinematic(img_bytes):
                             test_img = Image.open(BytesIO(img_bytes))
                             test_img.verify()
                             used_urls.add(img_url)
@@ -464,7 +476,7 @@ def search_wikimedia_image_pool(query, used_urls):
                         continue
         except Exception as e:
             print(f"   ⚠️ Wikimedia-Hinweis: {e}")
-            time.sleep(0.3)
+            time.sleep(1.5)
     return None
 
 def download_contextual_media(parts, main_topic):
