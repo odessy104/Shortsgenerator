@@ -1062,6 +1062,8 @@ def render_short(script_data, topic, spoken_hint="", index_num=1):
     if AUTO_UPLOAD:
         upload_short_to_youtube(output_path, viral_title)
 
+# ... (dein restlicher Code bis zum Ende des Skripts)
+
 if __name__ == "__main__":
     setup_directories()
     topics = get_topics_queue()
@@ -1071,3 +1073,13 @@ if __name__ == "__main__":
         full_text = " ".join([p["text"] for p in script_data["parts"]])
         clean_spoken = asyncio.run(generate_audio_async(full_text))
         render_short(script_data, topic, spoken_hint=clean_spoken, index_num=idx)
+        
+        # --- NEU: Ergebnis als result.json für die Web-App speichern ---
+        viral_title = script_data.get("viral_title", f"{topic} #shorts")
+        ergebnis = {
+            "title": viral_title,
+            "status": "fertig"
+        }
+        with open("result.json", "w", encoding="utf-8") as f:
+            json.dump(ergebnis, f, ensure_ascii=False, indent=4)
+        print(f"📄 result.json erfolgreich erstellt mit Titel: {viral_title}")
