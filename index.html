@@ -39,7 +39,7 @@
             font-size: 14px;
             color: #94a3b8;
         }
-        textarea, input[type="text"] {
+        textarea, input[type="password"] {
             width: 100%;
             background: #0f1117;
             border: 1px solid #2e3548;
@@ -53,7 +53,7 @@
             height: 90px;
             resize: vertical;
         }
-        textarea:focus, input[type="text"]:focus {
+        textarea:focus, input[type="password"]:focus {
             outline: none;
             border-color: #eab308;
         }
@@ -146,6 +146,10 @@
             color: #94a3b8;
             font-size: 13px;
             text-align: center;
+            padding: 10px;
+            background: #0f1117;
+            border-radius: 6px;
+            border: 1px solid #2e3548;
         }
     </style>
 </head>
@@ -169,7 +173,7 @@
 
         <button class="btn-start" onclick="triggerPipeline()">🚀 Pipeline auf GitHub starten</button>
 
-        <div id="statusMessage" class="status-msg"></div>
+        <div id="statusMessage" class="status-msg">Bereit.</div>
 
         <!-- Dynamischer Container für alle generierten Videos & Titel -->
         <div id="video-list-container"></div>
@@ -180,7 +184,6 @@
         const GITHUB_REPO = "Shortsgenerator";
         const WORKFLOW_FILE = "run_pipeline.yml";
 
-        // Beim Laden der Seite prüfen, ob ein Token gespeichert ist
         window.onload = function() {
             let savedToken = localStorage.getItem("gh_token");
             if (savedToken) {
@@ -192,7 +195,7 @@
             let token = document.getElementById("tokenInput").value.trim();
             if (token) {
                 localStorage.setItem("gh_token", token);
-                document.getElementById("saveStatusinnerText = "Gespeichert!";
+                document.getElementById("saveStatus").innerText = "Gespeichert!";
                 setTimeout(() => { document.getElementById("saveStatus").innerText = ""; }, 2000);
             } else {
                 alert("Bitte gib einen gültigen Token ein.");
@@ -214,7 +217,7 @@
                 return;
             }
 
-            statusDiv.innerText = "⏳ Starte Pipeline auf GitHub...";
+            statusDiv.innerText = "⏳ Verbinde mit GitHub...";
 
             try {
                 let response = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/actions/workflows/${WORKFLOW_FILE}/dispatches`, {
@@ -233,10 +236,10 @@
                 });
 
                 if (response.status === 204) {
-                    statusDiv.innerText = "✅ Pipeline erfolgreich gestartet! Warte auf Ergebnisse...";
+                    statusDiv.innerText = "✅ Pipeline erfolgreich gestartet! Schau in GitHub unter 'Actions'.";
                 } else {
-                    let errData = await response.json();
-                    statusDiv.innerText = "❌ Fehler beim Start: " + (errData.message || response.statusText);
+                    let errText = await response.text();
+                    statusDiv.innerText = `❌ Fehler (${response.status}): ${errText || response.statusText}`;
                 }
             } catch (error) {
                 statusDiv.innerText = "❌ Netzwerkfehler: " + error.message;
@@ -268,7 +271,7 @@
                     });
                 }
             } catch (e) {
-                // Stilles Warten, falls result.json noch nicht existiert
+                // Stilles Warten
             }
         }
 
