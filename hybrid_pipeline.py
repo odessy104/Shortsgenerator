@@ -413,7 +413,7 @@ def search_ddgs_image_pool(queries_to_try, used_urls):
     return None
 
 def search_wikimedia_image_pool(query, used_urls):
-    search_url = "[https://commons.wikimedia.org/w/api.php](https://commons.wikimedia.org/w/api.php)"
+    search_url = "https://commons.wikimedia.org/w/api.php"
     clean_q = re.sub(r'\b(macro|photography|wide shot|realistic|cinematic|background|high resolution)\b', '', query, flags=re.IGNORECASE).strip()
     search_queries = [
         clean_q,
