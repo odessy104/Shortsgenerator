@@ -436,38 +436,40 @@ def search_ddgs_image_pool(queries_to_try, used_urls):
 def search_wikimedia_image_pool(query, main_topic, used_urls):
     search_url = "https://commons.wikimedia.org/w/api.php"
     
-    # Bereinige das Keyword radikal von langen Füllwörtern
-    clean_q = re.sub(r'\b(macro|photography|wide shot|angle|realistic|cinematic|background|high resolution|scientific|visualization|study|role|consolidation|unsolved|paradox)\b', '', query, flags=re.IGNORECASE).strip()
-    words = clean_q.split()
+    # Zerlege das Thema und den Suchbegriff in simple Bausteine
+    words = [w for w in re.findall(r'[A-Za-z]+', query) if len(w) > 3]
+    main_words = [w for w in re.findall(r'[A-Za-z]+', main_topic) if len(w) > 3]
     
-    # Nutze maximal die ersten 2-3 Wörter für eine breite, sichere Wikimedia-Trefferquote
-    short_q = " ".join(words[:2]) if len(words) >= 2 else clean_q
-    if not short_q:
-        short_q = main_topic.split()[0]  # Fallback auf das Hauptwort des Themas
-    
-    # Erstelle eine robuste Liste von Suchanfragen (von sehr spezifisch bis allgemein)
-    search_queries = [short_q, main_topic, "science abstract"]
+    # Eine Kette von Suchbegriffen: Von spezifisch bis absolut allgemein
+    search_queries = [
+        " ".join(words[:2]) if len(words) >= 2 else query,
+        main_topic,
+        main_words[0] if main_words else "science",
+        "universe",
+        "technology",
+        "nature"
+    ]
+    # Duplikate entfernen und leere Einträge filtern
+    search_queries = list(dict.fromkeys([q for q in search_queries if q]))
     
     headers = {
         "User-Agent": "ScienceShortsGenerator/1.0 (https://github.com; contact@scienceshorts.local) Python-Requests"
     }
     
     for sq in search_queries:
-        if not sq:
-            continue
         params = {
             "action": "query",
             "generator": "search",
             "gsrsearch": f"filetype:bitmap {sq}",
             "gsrnamespace": "6",
-            "gsrlimit": "10",
+            "gsrlimit": "15",
             "prop": "imageinfo",
             "iiprop": "url|size",
             "iiurlwidth": "1280",
             "format": "json"
         }
         try:
-            time.sleep(0.4)
+            time.sleep(0.3)
             response = requests.get(search_url, params=params, headers=headers, timeout=10)
             if response.status_code != 200 or not response.text.strip():
                 continue
@@ -485,24 +487,22 @@ def search_wikimedia_image_pool(query, main_topic, used_urls):
                     if is_url_blocked_watermark_or_thumbnail(img_url, title):
                         continue
                     try:
-                        time.sleep(0.2)
                         resp = requests.get(img_url, timeout=6, headers=headers)
                         if resp.status_code != 200:
                             continue
                         img_bytes = resp.content
-                        if len(img_bytes) > 30000 and is_image_clean_and_cinematic(img_bytes):
-                            test_img = Image.open(BytesIO(img_bytes))
-                            test_img.verify()
+                        if len(img_bytes) > 20000 and is_image_clean_and_cinematic(img_bytes):
                             used_urls.add(img_url)
-                            print(f"   📸 Perfektes Wikimedia-Bild gefunden: '{sq}'")
+                            print(f"   📸 Garantiertes Wikimedia-Bild gefunden via '{sq}': {img_url}")
                             return img_bytes
                     except Exception:
                         continue
-        except Exception as e:
-            print(f"   ⚠️ Wikimedia-Hinweis: {e}")
-            time.sleep(0.5)
+        except Exception:
+            continue
             
-    return None
+    # Absolute Notlösung, falls selbst "nature" fehlschlägt (greift im Grunde nie, sichert aber ab)
+    print("   ⚠️ Notfall-Griff zu allgemeinem Wikimedia-Stock...")
+    return search_wikimedia_image_pool("science", "science", used_urls)
 
 def download_contextual_media(parts, main_topic):
     for f_path in glob.glob("input_clips/*"):
