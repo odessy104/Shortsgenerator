@@ -21,6 +21,13 @@ jobs:
         with:
           python-version: '3.12'
           cache: 'pip'
+      - name: Commit and push result.json
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.io"
+          git add result.json
+          git commit -m "chore: update result.json with latest video title [skip ci]" || echo "No changes to commit"
+          git push    
 
       - name: System-Pakete installieren
         run: |
