@@ -33,6 +33,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt || pip install edge-tts openai-whisper moviepy requests pillow numpy
 
+      - name: Alte Resultate zurücksetzen
+        run: |
+          rm -f result.json
+
       - name: Pipeline starten
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
