@@ -3,212 +3,236 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎬 YouTube Shorts Control Center</title>
-    <link rel="icon" type="image/png" href="icon.png">
-    <link rel="apple-touch-icon" href="icon.png">
-    <link rel="manifest" href="manifest.json">
+    <title>Shorts Generator Hub</title>
     <style>
-        :root { --bg: #0f121a; --card: #181d2c; --accent: #ffe100; --text: #ffffff; --text-muted: #94a3b8; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; justify-content: center; }
-        .container { width: 100%; max-width: 600px; }
-        .card { background: var(--card); border-radius: 16px; padding: 24px; margin-bottom: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); }
-        h1 { font-size: 1.5rem; margin-top: 0; color: var(--accent); display: flex; align-items: center; gap: 10px; }
-        label { display: block; margin-bottom: 8px; color: var(--text-muted); font-size: 0.9rem; }
-        input, textarea { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #2d3748; background: #0b0e14; color: #fff; font-size: 1rem; box-sizing: border-box; margin-bottom: 16px; }
-        textarea { height: 100px; resize: vertical; }
-        button { background: var(--accent); color: #000; border: none; padding: 14px 20px; border-radius: 8px; font-weight: bold; font-size: 1rem; width: 100%; cursor: pointer; transition: opacity 0.2s; }
-        button:hover { opacity: 0.9; }
-        .status-box { padding: 12px; border-radius: 8px; background: #0b0e14; margin-top: 15px; font-family: monospace; font-size: 0.9rem; border-left: 4px solid var(--accent); }
-        .video-grid { display: grid; gap: 15px; margin-top: 15px; }
-        video { width: 100%; border-radius: 12px; background: #000; max-height: 450px; }
-        .settings-toggle { font-size: 0.85rem; color: var(--text-muted); cursor: pointer; margin-bottom: 15px; display: inline-block; }
-        .settings-toggle:hover { color: var(--accent); }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #0f1117;
+            color: #fff;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: #161922;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            border: 1px solid #222736;
+        }
+        h2 {
+            margin-top: 0;
+            color: #eab308;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #94a3b8;
+        }
+        textarea {
+            width: 100%;
+            height: 90px;
+            background: #0f1117;
+            border: 1px solid #2e3548;
+            border-radius: 8px;
+            color: #fff;
+            padding: 12px;
+            font-size: 14px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #eab308;
+        }
+        .btn-start {
+            width: 100%;
+            background: #eab308;
+            color: #000;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-start:hover {
+            background: #ca8a04;
+        }
+        #video-list-container {
+            margin-top: 20px;
+        }
+        .video-card {
+            background: #1e222d;
+            padding: 15px;
+            margin-top: 12px;
+            border-radius: 8px;
+            border: 1px solid #2e3548;
+        }
+        .video-title {
+            color: #fff;
+            font-weight: bold;
+            margin-bottom: 12px;
+            font-size: 15px;
+            word-break: break-word;
+        }
+        .btn-action-group {
+            display: flex;
+            gap: 10px;
+        }
+        .btn-copy {
+            background: #eab308;
+            color: #000;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .btn-copy:hover {
+            background: #ca8a04;
+        }
+        .btn-download {
+            background: #3b82f6;
+            color: #fff;
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            display: inline-block;
+            font-size: 13px;
+        }
+        .btn-download:hover {
+            background: #2563eb;
+        }
+        .status-msg {
+            margin-top: 15px;
+            font-style: italic;
+            color: #94a3b8;
+            font-size: 13px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
+
     <div class="container">
-        <div class="card">
-            <h1>🎬 Shorts Generator Hub</h1>
-            
-            <span class="settings-toggle" onclick="toggleSettings()">⚙️ GitHub Einstellungen anzeigen</span>
-            <div id="settingsPanel" style="display: none;">
-                <label>GitHub Benutzername:</label>
-                <input type="text" id="ghUser" placeholder="Dein GitHub Username">
-                <label>Repository Name:</label>
-                <input type="text" id="ghRepo" placeholder="Shortsgenerator">
-                <label>GitHub Personal Access Token (mit 'repo' & 'workflow' Berechtigung):</label>
-                <input type="password" id="ghToken" placeholder="ghp_...">
-                <button onclick="saveSettings()" style="background: #2d3748; color: #fff; margin-bottom: 15px; padding: 8px;">Einstellungen speichern</button>
-            </div>
-
-            <label>Wissenschaftliche Themen (kommagetrennt):</label>
-            <textarea id="topicsInput">Magnetfeld der Erde und Tiere, Künstliche Intelligenz, Warum wir Träume vergessen, Quantencomputer, Superfluides Helium</textarea>
-            
-            <button onclick="startPipeline()">🚀 Pipeline auf GitHub starten</button>
-            
-            <div id="statusOutput" class="status-box" style="display: none;">Status: Bereit...</div>
-
-            <!-- NEU: Bereich für den generierten Videotitel -->
-            <div id="result-box" style="margin-top: 20px; padding: 15px; background: #0b0e14; border-radius: 8px; display: none; border-left: 4px solid var(--accent);">
-                <h3 style="margin-top: 0; font-size: 1.1rem; color: var(--accent);">Dein generierter Titel:</h3>
-                <p id="output-title" style="font-size: 1rem; color: #fff; font-weight: bold; margin-bottom: 12px;"></p>
-                <button onclick="kopiereTitel()" style="padding: 10px; background: var(--accent); color: #000; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">Titel kopieren</button>
-            </div>
+        <h2>🎬 Shorts Generator Hub</h2>
+        
+        <div class="input-group">
+            <label for="themesInput">Wissenschaftliche Themen (kommagetrennt):</label>
+            <textarea id="themesInput" placeholder="Geheimnisse des menschlichen Gedächtnisses, Erstaunliche Superkräfte von Tieren..."></textarea>
         </div>
 
-        <div class="card" id="resultsCard" style="display: none;">
-            <h1>📥 Generierte Shorts (Downloads & Vorschau)</h1>
-            <div id="videosContainer" class="video-grid"></div>
-        </div>
+        <button class="btn-start" onclick="triggerPipeline()">🚀 Pipeline auf GitHub starten</button>
+
+        <div id="statusMessage" class="status-msg"></div>
+
+        <!-- Dynamischer Container für alle generierten Videos & Titel -->
+        <div id="video-list-container"></div>
     </div>
 
     <script>
-        function toggleSettings() {
-            const p = document.getElementById('settingsPanel');
-            p.style.display = p.style.display === 'none' ? 'block' : 'none';
-        }
+        // GitHub Konfiguration (bitte anpassen falls sich Repo-Namen ändern)
+        const GITHUB_USER = "odessy104";
+        const GITHUB_REPO = "Shortsgenerator";
+        const WORKFLOW_FILE = "run_pipeline.yml";
+        
+        // Hinweis: Für GitHub Dispatch über Web-App wird ein Personal Access Token (PAT) benötigt.
+        // Falls du den Token direkt in localStorage speicherst oder im Code hinterlegst:
+        const GITHUB_TOKEN = localStorage.getItem("gh_token") || "";
 
-        function saveSettings() {
-            localStorage.setItem('ghUser', document.getElementById('ghUser').value);
-            localStorage.setItem('ghRepo', document.getElementById('ghRepo').value);
-            localStorage.setItem('ghToken', document.getElementById('ghToken').value);
-            alert('Einstellungen gespeichert!');
-        }
+        async function triggerPipeline() {
+            let themes = document.getElementById("themesInput").value.trim();
+            let statusDiv = document.getElementById("statusMessage");
 
-        window.onload = function() {
-            if(localStorage.getItem('ghUser')) document.getElementById('ghUser').value = localStorage.getItem('ghUser');
-            if(localStorage.getItem('ghRepo')) document.getElementById('ghRepo').value = localStorage.getItem('ghRepo');
-            if(localStorage.getItem('ghToken')) document.getElementById('ghToken').value = localStorage.getItem('ghToken');
-            
-            // Direkt beim Laden der App prüfen, ob schon ein Titel da ist
-            ladeErgebnis();
-            // Alle 15 Sekunden im Hintergrund auf neue Ergebnisse prüfen
-            setInterval(ladeErgebnis, 15000);
-        }
-
-        async function startPipeline() {
-            const user = document.getElementById('ghUser').value;
-            const repo = document.getElementById('ghRepo').value;
-            const token = document.getElementById('ghToken').value;
-            const topics = document.getElementById('topicsInput').value;
-            const statusBox = document.getElementById('statusOutput');
-
-            if(!user || !repo || !token) {
-                alert('Bitte trage in den Einstellungen deinen GitHub User, Repo und Token ein!');
-                toggleSettings();
+            if (!themes) {
+                alert("Bitte gib mindestens ein Thema ein!");
                 return;
             }
 
-            statusBox.style.display = 'block';
-            statusBox.innerHTML = '⏳ Sende Start-Signal an GitHub Actions...';
+            if (!GITHUB_TOKEN) {
+                let tokenInput = prompt("Bitte gib deinen GitHub Personal Access Token (mit 'repo' bzw. 'workflow' Berechtigung) ein:");
+                if (tokenInput) {
+                    localStorage.setItem("gh_token", tokenInput.trim());
+                } else {
+                    return;
+                }
+            }
+
+            statusDiv.innerText = "⏳ Starte Pipeline auf GitHub...";
 
             try {
-                const res = await fetch(`https://api.github.com/repos/${user}/${repo}/actions/workflows/run_pipeline.yml/dispatches`, {
+                let response = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/actions/workflows/${WORKFLOW_FILE}/dispatches`, {
                     method: 'POST',
                     headers: {
-                        'Authorization': `token ${token}`,
+                        'Authorization': `token ${localStorage.getItem("gh_token")}`,
                         'Accept': 'application/vnd.github.v3+json',
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
                         ref: 'main',
-                        inputs: { themes: topics }
+                        inputs: {
+                            themes: themes
+                        }
                     })
                 });
 
-                if(res.status === 204) {
-                    statusBox.innerHTML = '✅ Pipeline erfolgreich auf GitHub gestartet! Überwache Status...';
-                    pollWorkflowStatus(user, repo, token);
+                if (response.status === 204) {
+                    statusDiv.innerText = "✅ Pipeline erfolgreich gestartet! Warte auf Ergebnisse...";
                 } else {
-                    const err = await res.text();
-                    statusBox.innerHTML = `❌ Fehler beim Start: ${err}`;
+                    let errData = await response.json();
+                    statusDiv.innerText = "❌ Fehler beim Start: " + (errData.message || response.statusText);
                 }
-            } catch(e) {
-                statusBox.innerHTML = `❌ Netzwerkfehler: ${e.message}`;
+            } catch (error) {
+                statusDiv.innerText = "❌ Netzwerkfehler: " + error.message;
             }
         }
 
-        async function pollWorkflowStatus(user, repo, token) {
-            const statusBox = document.getElementById('statusOutput');
-            const interval = setInterval(async () => {
-                try {
-                    const res = await fetch(`https://api.github.com/repos/${user}/${repo}/actions/runs?per_page=1`, {
-                        headers: { 'Authorization': `token ${token}` }
-                    });
-                    const data = await res.json();
-                    if(data.workflow_runs && data.workflow_runs.length > 0) {
-                        const run = data.workflow_runs[0];
-                        statusBox.innerHTML = `Status: <b>${run.status}</b> (${run.conclusion || 'läuft...'})`;
-                        
-                        if(run.status === 'completed') {
-                            clearInterval(interval);
-                            if(run.conclusion === 'success') {
-                                statusBox.innerHTML = '🎉 Pipeline beendet! Lade fertige Videos & Titel...';
-                                loadReleases(user, repo, token);
-                                ladeErgebnis(); // Titel direkt nach Abschluss laden
-                            } else {
-                                statusBox.innerHTML = '⚠️ Pipeline mit Fehlern beendet. Schau in die GitHub Actions Logs.';
-                            }
-                        }
-                    }
-                } catch(e) {
-                    console.error(e);
-                }
-            }, 5000);
-        }
-
-        // NEU: Funktion zum Laden der result.json
-        async function ladeErgebnis() {
+        async function checkResults() {
             try {
-                let response = await fetch('./result.json?t=' + new Date().getTime());
+                let response = await fetch('result.json?_=' + new Date().getTime());
                 if (response.ok) {
                     let data = await response.json();
-                    if (data.title) {
-                        document.getElementById('output-title').innerText = data.title;
-                        document.getElementById('result-box').style.display = 'block';
-                    }
+                    let container = document.getElementById('video-list-container');
+                    container.innerHTML = "";
+
+                    let videos = data.videos || (Array.isArray(data) ? data : [data]);
+
+                    videos.forEach((vid, idx) => {
+                        let card = document.createElement('div');
+                        card.className = "video-card";
+                        
+                        card.innerHTML = `
+                            <div class="video-title">Short #${vid.index || (idx + 1)}: ${vid.title}</div>
+                            <div class="btn-action-group">
+                                <button class="btn-copy" onclick="navigator.clipboard.writeText('${vid.title.replace(/'/g, "\\'")}')">📋 Titel kopieren</button>
+                                <a class="btn-download" href="https://github.com/${GITHUB_USER}/${GITHUB_REPO}/releases" target="_blank">📥 Video herunterladen</a>
+                            </div>
+                        `;
+                        container.appendChild(card);
+                    });
                 }
             } catch (e) {
-                console.log("Noch kein Ergebnis verfügbar.");
+                // Stilles Warten, falls result.json noch nicht existiert
             }
         }
 
-        // NEU: Funktion zum Kopieren des Titels in die Zwischenablage
-        function kopiereTitel() {
-            const text = document.getElementById('output-title').innerText;
-            navigator.clipboard.writeText(text).then(() => {
-                alert("Titel in die Zwischenablage kopiert!");
-            });
-        }
-
-        async function loadReleases(user, repo, token) {
-            try {
-                const res = await fetch(`https://api.github.com/repos/${user}/${repo}/releases`, {
-                    headers: { 'Authorization': `token ${token}` }
-                });
-                const releases = await res.json();
-                if(releases.length > 0) {
-                    const latestRelease = releases[0];
-                    const container = document.getElementById('videosContainer');
-                    container.innerHTML = '';
-                    
-                    latestRelease.assets.forEach(asset => {
-                        if(asset.name.endsWith('.mp4')) {
-                            container.innerHTML += `
-                                <div>
-                                    <p><b>${asset.name}</b></p>
-                                    <video controls src="${asset.browser_download_url}"></video>
-                                    <br><a href="${asset.browser_download_url}" download style="color: var(--accent);">📥 Video herunterladen</a>
-                                </div>
-                            `;
-                        }
-                    });
-                    document.getElementById('resultsCard').style.display = 'block';
-                }
-            } catch(e) {
-                console.error(e);
-            }
-        }
+        // Regelmäßig im Hintergrund prüfen
+        setInterval(checkResults, 15000);
+        checkResults();
     </script>
 </body>
 </html>
