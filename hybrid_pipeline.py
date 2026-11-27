@@ -10,6 +10,7 @@ import warnings
 import pickle
 import difflib
 import wave
+import shutil
 from io import BytesIO
 import numpy as np
 from PIL import Image, ImageEnhance, ImageDraw, ImageFont
@@ -55,14 +56,14 @@ if IS_GITHUB_ACTIONS:
     FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     if not os.path.exists(FONT_PATH):
         FONT_PATH = "DejaVuSans-Bold"
-    SUBTITLE_FONT_SIZE = 65
-    print("☁️ Umgebung: GitHub Actions (Online) – Verwende Cloud-Schriftgröße 65 & Wikimedia.")
+    SUBTITLE_FONT_SIZE = 58
+    print("☁️ Umgebung: GitHub Actions (Online) – Verwende Cloud-Schriftgröße 58 & Wikimedia.")
 else:
     FONT_PATH = "C:/Windows/Fonts/arialbd.ttf"
     if not os.path.exists(FONT_PATH):
         FONT_PATH = "arial.ttf"
-    SUBTITLE_FONT_SIZE = 48
-    print("💻 Umgebung: Lokaler Laptop – Verwende lokale Schriftgröße 48 & DDGS.")
+    SUBTITLE_FONT_SIZE = 46
+    print("💻 Umgebung: Lokaler Laptop – Verwende lokale Schriftgröße 46 & DDGS.")
 
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "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")
 GROQ_MODEL = "openai/gpt-oss-120b"
@@ -90,10 +91,18 @@ def setup_directories():
     os.makedirs("background_music", exist_ok=True)
     os.makedirs("sfx", exist_ok=True)
     os.makedirs("output", exist_ok=True)
+    
+    # Automatische Outro-Erkennung aus dem Root-Verzeichnis
+    if os.path.exists("outro.mp4"):
+        try:
+            shutil.copy("outro.mp4", "input_clips/outro.mp4")
+            print("🎬 Outro ('outro.mp4') im Root gefunden und nach input_clips/outro.mp4 kopiert.")
+        except Exception as e:
+            print(f"⚠️ Konnte outro.mp4 nicht kopieren: {e}")
+            
     ensure_builtin_cinematic_audio()
 
 def update_pipeline_status(progress_pct, current_step_text):
-    """Schreibt den aktuellen Fortschritt in eine status.json für die Web-App."""
     status_data = {
         "running": True,
         "progress": progress_pct,
@@ -141,7 +150,6 @@ def ensure_builtin_cinematic_audio():
         noise = rng.normal(0, 1, len(t_w))
         kernel = np.ones(45) / 45.0
         soft_noise = np.convolve(noise, kernel, mode="same")
-        soft_noise = np.convolve(soft_noise, kernel, mode="same")
         freq_sweep = np.linspace(95, 42, len(t_w))
         sub_body = 0.45 * np.sin(2 * np.pi * np.cumsum(freq_sweep) / sample_rate)
         envelope = np.sin(np.pi * (t_w / w_dur)) ** 2.2
@@ -160,7 +168,6 @@ def extract_json_from_response(content):
         return json.loads(content)
     except Exception:
         pass
-
     cleaned = re.sub(r'^```json\s*', '', content, flags=re.IGNORECASE)
     cleaned = re.sub(r'^```\s*', '', cleaned)
     cleaned = re.sub(r'\s*```$', '', cleaned).strip()
@@ -168,16 +175,13 @@ def extract_json_from_response(content):
         return json.loads(cleaned)
     except Exception:
         pass
-
     try:
         start_idx = cleaned.find('{')
         end_idx = cleaned.rfind('}')
         if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
-            potential_json = cleaned[start_idx:end_idx+1]
-            return json.loads(potential_json)
+            return json.loads(cleaned[start_idx:end_idx+1])
     except Exception:
         pass
-
     return None
 
 def proofread_german_grammar(parsed_json, headers):
@@ -192,7 +196,6 @@ def proofread_german_grammar(parsed_json, headers):
         proof_system = (
             "Du bist ein kompromissloser deutscher Chef-Lektor für High-End-Dokumentationen (Duden-Niveau). "
             "Prüfe die Sätze streng auf Grammatik, Eleganz und natürlichen Redefluss. "
-            "VERBANNE unnatürliche Wortkonstruktionen wie 'erreicht einen Fakt' oder 'verlangsamt sich das Wissen'. Nutze echte, flüssige Doku-Formulierungen. "
             "BEWAHRE alle XML-Tags wie <emphasis level=\"strong\">WORT</emphasis>, Emojis und die exakte Satzanzahl bei! "
             "Antworte AUSSCHLIESSLICH als reines JSON-Objekt."
         )
@@ -217,13 +220,11 @@ def proofread_german_grammar(parsed_json, headers):
                             parsed_json["parts"][idx]["text"] = new_t
                 if fixed.get("viral_title"):
                     parsed_json["viral_title"] = fixed["viral_title"]
-                print("🔍 Cheflektorat: Sätze perfektioniert & natürlich geformt!")
-    except Exception as e:
-        print(f"⚠️ Lektorat-Hinweis: {e}")
+    except Exception:
+        pass
     return parsed_json
 
 def intelligent_web_fallback_script(topic):
-    print(f"🌐 Suche echte Web-Fakten für das Fallback-Skript zu '{topic}'...")
     snippets = []
     if DDGS:
         try:
@@ -242,34 +243,29 @@ def intelligent_web_fallback_script(topic):
         sentences = re.split(r'(?<=[.!?])\s+', combined_text)
         for s in sentences:
             clean_s = s.strip()
-            if len(clean_s) > 35 and len(clean_s) < 100 and not any(w in clean_s.lower() for w in ["cookie", "datenschutz", "werbung"]):
+            if 35 < len(clean_s) < 100 and not any(w in clean_s.lower() for w in ["cookie", "datenschutz", "werbung"]):
                 fact_sentences.append(clean_s)
 
     while len(fact_sentences) < 5:
         fact_sentences.append(f"Wissenschaftler erforschen dieses komplexe Phänomen rund um {topic} seit vielen Jahren intensiv 🔬.")
 
     emojis = ["🧐", "⚡", "🔬", "🌍", "💡", "🚀"]
-    parts = []
-    
-    parts.append({
+    parts = [{
         "text": f'Kaum jemand ahnt, welches faszinierende Geheimnis hinter <emphasis level="strong">GEHEIMNIS</emphasis> steckt 🕵️‍♂️.',
         "search_keyword": f"{topic} macro scientific landscape photography"
-    })
-    
+    }]
     for i in range(4):
-        sent = fact_sentences[i] if i < len(fact_sentences) else f"Das erstaunliche Phänomen von {topic} stellt Forscher weltweit vor ungelöste Fragen ⚡."
+        sent = fact_sentences[i] if i < len(fact_sentences) else f"Das erstaunliche Phänomen von {topic} stellt Forscher weltweit vor Fragen ⚡."
         if len(sent) > 85:
             sent = sent[:82] + "..."
         parts.append({
             "text": f"{sent} {emojis[i % len(emojis)]}",
             "search_keyword": f"{topic} scientific macro nature background"
         })
-        
     parts.append({
         "text": f'Bis heute bleibt die gesamte Wissenschaft über das große Rätsel von <emphasis level="strong">RÄTSEL</emphasis> sprachlos 🌍.',
         "search_keyword": f"{topic} cinematic nature wide shot"
     })
-
     return {
         "mood": "epic",
         "viral_title": f"{topic} – Die ungelöste Akte #shorts",
@@ -281,54 +277,45 @@ def generate_full_script_with_cloud_ai(topic_or_text):
         "Authorization": f"Bearer {GROQ_API_KEY}",
         "Content-Type": "application/json"
     }
-    print(f"⚡ Groq ({GROQ_MODEL}) kreiert das Skript und die Fakten zum Thema: '{topic_or_text}'...")
-    
     system_prompt = (
         "Du bist ein preisgekrönter Drehbuchautor für hochwertige wissenschaftliche Dokumentationen.\n"
-        "Schreibe ein fesselndes, präzises Skript auf Deutsch, das gesprochen exakt 26 bis 28 Sekunden lang ist (insgesamt ca. 55 bis 65 Wörter – halte es bewusst etwas kompakter, damit es nicht zu gehetzt wirkt!).\n"
-        "STIL: Verwende absolut natürliches, elegantes Deutsch im Arte/Netflix-Dokumentationsstil. Vermeide hölzerne KI-Formulierungen wie 'erreicht einen Fakt' völlig.\n"
-        "WICHTIG für 'viral_title': Erstelle einen extrem klickstarken, seriösen Doku-Titel mit #shorts am Ende. Keine billigen Clickbait-Floskeln.\n"
-        "WICHTIG für Emphasis-Tags: Setze in <emphasis level=\"strong\">...</emphasis> immer ein echtes, wichtiges Hauptwort ein (z.B. MYSTERIUM oder KERN) und NIEMALS das Wort 'WORT'.\n"
-        "WICHTIG für 'search_keyword': Generiere präzise, eindeutige ENGLISCHE Suchbegriffe, die direkt zum genauen Thema passen (z.B. für das Gedächtnis: 'human brain memory neuroscience visualization', für Tiere: 'animal superpower wildlife macro photography'). Schließe Menschen, Sportler, Hochzeiten und Food strikt aus.\n"
+        "Schreibe ein fesselndes, präzises Skript auf Deutsch, das gesprochen exakt 26 bis 28 Sekunden lang ist (insgesamt ca. 55 bis 65 Wörter).\n"
+        "STIL: Natürliches, elegantes Deutsch im Arte/Netflix-Dokumentationsstil.\n"
+        "WICHTIG für 'viral_title': Erstelle einen klickstarken Doku-Titel mit #shorts am Ende.\n"
+        "WICHTIG für Emphasis-Tags: Setze in <emphasis level=\"strong\">...</emphasis> immer ein echtes Hauptwort ein und NIEMALS das Wort 'WORT'.\n"
+        "WICHTIG für 'search_keyword': Generiere präzise, eindeutige ENGLISCHE Suchbegriffe, die direkt zum genauen Thema passen.\n"
         "Antworte AUSSCHLIESSLICH als valides JSON-Objekt im exakten Format unten:\n\n"
         "{\n"
         "  \"mood\": \"epic\",\n"
         "  \"viral_title\": \"Dein starker Doku-Titel #shorts\",\n"
         "  \"parts\": [\n"
-        "    {\"text\": \"Hook mit <emphasis level=\\\"strong\\\">GEHEIMNIS</emphasis> (max. 10 Wörter)\", \"search_keyword\": \"english specific scientific query 1\"},\n"
-        "    {\"text\": \"Fakt mit <emphasis level=\\\"strong\\\">KERN</emphasis> (max. 10 Wörter)\", \"search_keyword\": \"english specific scientific query 2\"},\n"
-        "    {\"text\": \"Fakt mit <emphasis level=\\\"strong\\\">PHÄNOMEN</emphasis> (max. 10 Wörter)\", \"search_keyword\": \"english specific scientific query 3\"},\n"
-        "    {\"text\": \"Fakt mit <emphasis level=\\\"strong\\\">FORSCHUNG</emphasis> (max. 10 Wörter)\", \"search_keyword\": \"english specific scientific query 4\"},\n"
-        "    {\"text\": \"Fakt mit <emphasis level=\\\"strong\\\">ENERGIE</emphasis> (max. 10 Wörter)\", \"search_keyword\": \"english specific scientific query 5\"},\n"
-        "    {\"text\": \"Cliffhanger mit <emphasis level=\\\"strong\\\">RÄTSEL</emphasis> (max. 10 Wörter)\", \"search_keyword\": \"english specific scientific query 6\"}\n"
+        "    {\"text\": \"Hook mit <emphasis level=\\\"strong\\\">GEHEIMNIS</emphasis>\", \"search_keyword\": \"english specific scientific query 1\"},\n"
+        "    {\"text\": \"Fakt mit <emphasis level=\\\"strong\\\">KERN</emphasis>\", \"search_keyword\": \"english specific scientific query 2\"},\n"
+        "    {\"text\": \"Fakt mit <emphasis level=\\\"strong\\\">PHÄNOMEN</emphasis>\", \"search_keyword\": \"english specific scientific query 3\"},\n"
+        "    {\"text\": \"Fakt mit <emphasis level=\\\"strong\\\">FORSCHUNG</emphasis>\", \"search_keyword\": \"english specific scientific query 4\"},\n"
+        "    {\"text\": \"Fakt mit <emphasis level=\\\"strong\\\">ENERGIE</emphasis>\", \"search_keyword\": \"english specific scientific query 5\"},\n"
+        "    {\"text\": \"Cliffhanger mit <emphasis level=\\\"strong\\\">RÄTSEL</emphasis>\", \"search_keyword\": \"english specific scientific query 6\"}\n"
         "  ]\n"
         "}"
-    )
-
-    user_prompt = f"Thema: {topic_or_text}. Erstelle das 6-Teile JSON exakt zu diesem spezifischen Thema im Doku-Stil."
-    
+    }
     payload = {
         "model": GROQ_MODEL,
         "messages": [
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
+            {"role": "user", "content": f"Thema: {topic_or_text}. Erstelle das 6-Teile JSON exakt zu diesem spezifischen Thema im Doku-Stil."}
         ],
         "temperature": 0.4,
         "max_tokens": 4096
     }
-    
     try:
         response = requests.post(GROQ_URL, json=payload, headers=headers, timeout=25)
         if response.status_code == 200:
             content = response.json()["choices"][0]["message"]["content"].strip()
             parsed = extract_json_from_response(content)
             if parsed and "parts" in parsed and len(parsed["parts"]) >= 4:
-                parsed = proofread_german_grammar(parsed, headers)
-                print(f"✨ Skript erfolgreich generiert und optimiert!")
-                return parsed
-    except Exception as e:
-        print(f"⚠️ Groq-Exception: {e}")
-        
+                return proofread_german_grammar(parsed, headers)
+    except Exception:
+        pass
     return intelligent_web_fallback_script(topic_or_text)
 
 def extract_highlights_and_emojis(parts):
@@ -355,14 +342,13 @@ def get_topics_queue():
         topics = [t.strip() for t in themen_env.split(",") if t.strip()]
         if topics:
             return topics
-
     script_path = "skript.txt"
     if not os.path.exists(script_path):
         with open(script_path, "w", encoding="utf-8") as f:
-            f.write("Warum Uhren im Weltall langsamer oder schneller ticken\n")
+            f.write("Geheimnisse des menschlichen Gedächtnisses\n")
     with open(script_path, "r", encoding="utf-8") as f:
         lines = [line.strip() for line in f.readlines() if line.strip()]
-        return lines if lines else ["Warum Uhren im Weltall langsamer oder schneller ticken"]
+        return lines if lines else ["Geheimnisse des menschlichen Gedächtnisses"]
 
 def is_url_blocked_watermark_or_thumbnail(url, title=""):
     u = (url + " " + title).lower()
@@ -370,14 +356,12 @@ def is_url_blocked_watermark_or_thumbnail(url, title=""):
         "alamy", "shutterstock", "istockphoto", "gettyimages", "dreamstime",
         "123rf", "depositphotos", "vecteezy", "stock.adobe", "bigstockphoto",
         "plus.unsplash", "ytimg.com", "youtube.com", "youtu.be", "tiktok.com",
-        "pinterest.", "fbsbx.com", "fbsbx", "slideplayer", "slideshare",
-        "cosplay", "deviantart", "artstation", "pinterest", "instagram", "imgur", "anime",
+        "pinterest.", "fbsbx.com", "slideplayer", "slideshare",
+        "cosplay", "deviantart", "artstation", "instagram", "imgur", "anime",
         "netflix", "amazon", "book", "cover", "poster", "banner", "logo", "shop",
-        "food", "recipe", "dish", "cooking", "kitchen", "restaurant", "eat", "menu",
-        "capcom", "boardgame", "miniature", "ad", "promo",
+        "food", "recipe", "dish", "cooking", "kitchen", "restaurant", "eat",
         "wedding", "bride", "groom", "ceremony", "marriage", "people", "portrait", "face", "crowd",
-        "soccer", "football", "player", "sport", "match", "stadium", "athlete", "team",
-        "league", "goal", "ball", "championship", "tournament", "jersey", "coach", "celebrity", "actor"
+        "soccer", "football", "player", "sport", "match", "stadium", "athlete", "team"
     ]
     return any(b in u for b in blocked_sources)
 
@@ -406,7 +390,7 @@ def search_ddgs_image_pool(queries_to_try, used_urls):
     for q in queries_to_try:
         try:
             with DDGS() as ddgs:
-                results = list(ddgs.images(q, max_results=20))
+                results = list(ddgs.images(q, max_results=15))
                 for item in results:
                     img_url = item.get("image", "")
                     source_url = item.get("url", "")
@@ -418,45 +402,29 @@ def search_ddgs_image_pool(queries_to_try, used_urls):
                     if is_url_blocked_watermark_or_thumbnail(img_url, title + " " + source_url):
                         continue
                     try:
-                        resp = requests.get(img_url, timeout=4, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+                        resp = requests.get(img_url, timeout=4, headers={"User-Agent": "Mozilla/5.0"})
                         img_bytes = resp.content
-                        if len(img_bytes) > 60000 and is_image_clean_and_cinematic(img_bytes):
+                        if len(img_bytes) > 40000 and is_image_clean_and_cinematic(img_bytes):
                             test_img = Image.open(BytesIO(img_bytes))
                             test_img.verify()
                             used_urls.add(img_url)
-                            print(f"   📸 Perfektes DDGS-Bild gefunden: '{q}'")
                             return img_bytes
                     except Exception:
                         continue
         except Exception:
-            time.sleep(0.3)
+            time.sleep(0.2)
             continue
     return None
 
 def search_wikimedia_image_pool(query, main_topic, used_urls):
-    search_url = "https://commons.wikimedia.org/w/api.php"
-    
-    # Zerlege das Thema und den Suchbegriff in simple Bausteine
-    words = [w for w in re.findall(r'[A-Za-z]+', query) if len(w) > 3]
-    main_words = [w for w in re.findall(r'[A-Za-z]+', main_topic) if len(w) > 3]
-    
-    # Eine Kette von Suchbegriffen: Von spezifisch bis absolut allgemein
-    search_queries = [
-        " ".join(words[:2]) if len(words) >= 2 else query,
-        main_topic,
-        main_words[0] if main_words else "science",
-        "universe",
-        "technology",
-        "nature"
-    ]
-    # Duplikate entfernen und leere Einträge filtern
-    search_queries = list(dict.fromkeys([q for q in search_queries if q]))
-    
+    search_url = "[https://commons.wikimedia.org/w/api.php](https://commons.wikimedia.org/w/api.php)"
+    search_queries = [query, main_topic]
     headers = {
-        "User-Agent": "ScienceShortsGenerator/1.0 (https://github.com; contact@scienceshorts.local) Python-Requests"
+        "User-Agent": "ScienceShortsGenerator/1.0 ([https://github.com](https://github.com); contact@scienceshorts.local) Python-Requests"
     }
-    
     for sq in search_queries:
+        if not sq:
+            continue
         params = {
             "action": "query",
             "generator": "search",
@@ -475,7 +443,6 @@ def search_wikimedia_image_pool(query, main_topic, used_urls):
                 continue
             data = response.json()
             pages = data.get("query", {}).get("pages", {})
-            
             for page_id, page_info in pages.items():
                 title = page_info.get("title", "")
                 image_info = page_info.get("imageinfo", [])
@@ -491,23 +458,19 @@ def search_wikimedia_image_pool(query, main_topic, used_urls):
                         if resp.status_code != 200:
                             continue
                         img_bytes = resp.content
-                        if len(img_bytes) > 20000 and is_image_clean_and_cinematic(img_bytes):
+                        if len(img_bytes) > 25000 and is_image_clean_and_cinematic(img_bytes):
                             used_urls.add(img_url)
-                            print(f"   📸 Garantiertes Wikimedia-Bild gefunden via '{sq}': {img_url}")
                             return img_bytes
                     except Exception:
                         continue
         except Exception:
             continue
-            
-    # Absolute Notlösung, falls selbst "nature" fehlschlägt (greift im Grunde nie, sichert aber ab)
-    print("   ⚠️ Notfall-Griff zu allgemeinem Wikimedia-Stock...")
-    return search_wikimedia_image_pool("science", "science", used_urls)
+    return None
 
 def download_contextual_media(parts, main_topic):
     for f_path in glob.glob("input_clips/*"):
         filename = os.path.basename(f_path)
-        if filename.startswith("cloud_media_") or "_perfect_fit" in f_path or "_sub_temp" in f_path or "_outro_temp" in f_path:
+        if filename.startswith("cloud_media_") or "_perfect_fit" in f_path or "_sub_temp" in f_path:
             try:
                 os.remove(f_path)
             except:
@@ -515,7 +478,7 @@ def download_contextual_media(parts, main_topic):
 
     downloaded_files = []
     used_urls = set()
-    strict_negatives = "-soccer -football -player -sport -match -stadium -athlete -team -wedding -people -portrait -food -recipe"
+    strict_negatives = "-soccer -football -player -sport -match -wedding -people -portrait -food"
 
     for idx, part in enumerate(parts):
         ai_query = part.get('search_keyword', main_topic)
@@ -527,10 +490,8 @@ def download_contextual_media(parts, main_topic):
         img_bytes = None
         
         if IS_GITHUB_ACTIONS:
-            print(f"☁️ [GitHub] Bildsuche {idx+1}/6 über Wikimedia für Thema '{main_topic}' / Keyword: '{clean_q}'...")
             img_bytes = search_wikimedia_image_pool(clean_q, main_topic, used_urls)
         else:
-            print(f"💻 [Lokal] Bildsuche {idx+1}/6 über DDGS für: '{clean_q}'...")
             queries = [
                 f"{clean_q} scientific macro photography wide shot realistic {strict_negatives}",
                 f"{main_topic} documentary scientific background high resolution {strict_negatives}"
@@ -538,7 +499,6 @@ def download_contextual_media(parts, main_topic):
             img_bytes = search_ddgs_image_pool(queries, used_urls)
             
         if not img_bytes and IS_GITHUB_ACTIONS and DDGS:
-            print("   🔄 Wikimedia lieferte kein Trefferbild, versuche DDGS...")
             queries = [
                 f"{clean_q} scientific macro photography {strict_negatives}",
                 f"{main_topic} nature background {strict_negatives}"
@@ -546,7 +506,6 @@ def download_contextual_media(parts, main_topic):
             img_bytes = search_ddgs_image_pool(queries, used_urls)
             
         if not img_bytes:
-            print("   ⚠️ Offline-Fallback: Generiere Cinematic-Hintergrund...")
             img_blank = Image.new("RGB", (1080, 1920), (15, 18, 28))
             draw = ImageDraw.Draw(img_blank)
             draw.ellipse([-200, -200, 1280, 800], fill=(30, 45, 75))
@@ -616,7 +575,7 @@ def make_perfect_timeline(media_clips, total_duration):
     final_timeline = concatenate_videoclips(clips_sequence, method="compose")
     return final_timeline.subclipped(0, min(total_duration, final_timeline.duration)).with_position('center')
 
-def create_pil_text_image(text_block, font_path, emoji_map, dynamic_highlights, font_size=48, canvas_width=1000):
+def create_pil_text_image(text_block, font_path, emoji_map, dynamic_highlights, font_size=46, canvas_width=1000):
     words = text_block.split()
     try:
         font = ImageFont.truetype(font_path, font_size)
@@ -630,7 +589,8 @@ def create_pil_text_image(text_block, font_path, emoji_map, dynamic_highlights, 
     lines = []
     current_line_words = []
     current_line_width = 0
-    max_line_width = 900
+    # Strengere Begrenzung (820px), damit Untertitel garantiert nie über den Bildschirmrand hinausgehen
+    max_line_width = 820
     
     for word in words:
         bbox = draw.textbbox((0, 0), word, font=font)
@@ -726,7 +686,6 @@ def align_whisper_words_with_script(whisper_words, true_script_text):
     return corrected
 
 def generate_synchronized_subtitles(audio_path, video_size, emoji_map, dynamic_highlights, spoken_script_hint="", max_duration=TARGET_DURATION):
-    print("📝 Synchronisiere Untertitel...")
     model = whisper.load_model("small")
     try:
         result = model.transcribe(audio_path, language="de", word_timestamps=True, condition_on_previous_text=False, fp16=False)
@@ -800,12 +759,12 @@ def generate_synchronized_subtitles(audio_path, video_size, emoji_map, dynamic_h
         duration = max(0.3, end - start)
         
         img_path = create_pil_text_image(chunk["text"], FONT_PATH, emoji_map, dynamic_highlights, font_size=SUBTITLE_FONT_SIZE, canvas_width=1000)
+        # Perfekte vertikale Positionierung (h * 0.70), damit Untertitel perfekt lesbar sind und nicht am Rand kleben
         txt_clip = (ImageClip(img_path)
                     .with_duration(duration)
                     .with_start(start)
-                    .with_position(('center', h * 0.74)))
+                    .with_position(('center', h * 0.70)))
         subtitle_clips.append(txt_clip)
-    print(f"✅ {len(subtitle_clips)} Untertitel synchronisiert!")
     return subtitle_clips
 
 def remove_green_screen(get_frame, t):
@@ -890,7 +849,6 @@ def clean_text_for_smooth_speech(raw_text):
     text_clean = re.sub(r'<[^>]+>', ' ', text_clean)
     text_clean = re.sub(r'\bWORT\b', '', text_clean, flags=re.IGNORECASE)
     text_clean = re.sub(r'Teil\s*\d+\s*[:,-]?', '', text_clean, flags=re.IGNORECASE)
-    
     text_clean = re.sub(r'\[[^\]]*\]', ' ', text_clean)
     text_clean = re.sub(r'\b(SFX|ACTION)_[A-Z_]+\b', ' ', text_clean)
     text_clean = ''.join(c for c in text_clean if c.isalnum() or c.isspace() or c in ".,!?;:-–„\"''()")
@@ -956,7 +914,6 @@ def trim_long_silences(audio_path, max_pause_sec=0.14):
         pass
 
 async def generate_audio_async(full_text, output_file="voiceover.mp3"):
-    print("🎙️ Generiere Sprachausgabe...")
     voice = "de-DE-KillianNeural"
     text_clean = clean_text_for_smooth_speech(full_text)
     if not text_clean:
@@ -986,15 +943,12 @@ async def generate_audio_async(full_text, output_file="voiceover.mp3"):
         if new_rate == current_rate:
             break
         current_rate = new_rate
-        rate_str = f"{current_rate:+d}%"
-        communicate = edge_tts.Communicate(text_clean, voice, rate=rate_str)
+        communicate = edge_tts.Communicate(text_clean, voice, rate=f"{current_rate:+d}%")
         await communicate.save(output_file)
         trim_long_silences(output_file, max_pause_sec=0.14)
         check_clip = AudioFileClip(output_file)
         actual_dur = check_clip.duration
         check_clip.close()
-        
-    print(f"✅ Sprachausgabe beendet bei {actual_dur:.2f}s!")
     return text_clean
 
 def render_short(script_data, topic, spoken_hint="", index_num=1):
@@ -1103,7 +1057,6 @@ def render_short(script_data, topic, spoken_hint="", index_num=1):
         json.dump({"videos": results_list}, f, ensure_ascii=False, indent=4)
 
     print(f"\n🚀 BOOM! Short #{index_num} ist fertig: {output_path}")
-    print(f"\n📋 DEIN TITEL:\n{viral_title}\n")
     if AUTO_UPLOAD:
         upload_short_to_youtube(output_path, viral_title)
 
@@ -1115,8 +1068,6 @@ if __name__ == "__main__":
     for idx, topic in enumerate(topics, 1):
         prozent = int((idx / total_topics) * 100)
         status_text = f"Generiere Short {idx} von {total_topics} ({prozent}%): {topic}"
-        
-        # Status für die Web-App live speichern (auch beim Schließen sichtbar)
         update_pipeline_status(prozent, status_text)
         
         print(f"\n================ 🚀 FORTSCHRITT: {prozent}% (Short {idx} von {total_topics}) ================")
@@ -1127,7 +1078,6 @@ if __name__ == "__main__":
         clean_spoken = asyncio.run(generate_audio_async(full_text))
         render_short(script_data, topic, spoken_hint=clean_spoken, index_num=idx)
         
-    # Abschluss-Status in status.json schreiben
     try:
         with open("status.json", "w", encoding="utf-8") as f:
             json.dump({"running": False, "progress": 100, "message": "Alle Shorts erfolgreich generiert!"}, f)
