@@ -146,10 +146,6 @@
             color: #94a3b8;
             font-size: 13px;
             text-align: center;
-            padding: 10px;
-            background: #0f1117;
-            border-radius: 6px;
-            border: 1px solid #2e3548;
         }
     </style>
 </head>
@@ -158,12 +154,12 @@
     <div class="container">
         <h2>🎬 Shorts Generator Hub</h2>
         
-        <!-- Einstellungen-Bereich für den Token -->
+        <!-- Token Einstellungen -->
         <div class="settings-box">
             <label for="tokenInput">⚙️ GitHub Personal Access Token:</label>
-            <input type="password" id="tokenInput" placeholder="ghp_xxxx..." />
-            <button class="btn-save" onclick="saveSettings()">💾 Token speichern</button>
-            <span id="saveStatus" style="font-size: 12px; color: #22c55e; margin-left: 10px;"></span>
+            <input type="password" id="tokenInput" placeholder="Dein GitHub Token (ghp_...)" />
+            <button class="btn-save" onclick="saveToken()">💾 Token speichern</button>
+            <span id="tokenStatus" style="font-size: 12px; color: #22c55e; margin-left: 10px;"></span>
         </div>
 
         <div class="input-group">
@@ -173,9 +169,8 @@
 
         <button class="btn-start" onclick="triggerPipeline()">🚀 Pipeline auf GitHub starten</button>
 
-        <div id="statusMessage" class="status-msg">Bereit.</div>
+        <div id="statusMessage" class="status-msg"></div>
 
-        <!-- Dynamischer Container für alle generierten Videos & Titel -->
         <div id="video-list-container"></div>
     </div>
 
@@ -184,19 +179,22 @@
         const GITHUB_REPO = "Shortsgenerator";
         const WORKFLOW_FILE = "run_pipeline.yml";
 
+        // Token beim Laden der Seite vorausfüllen falls vorhanden
         window.onload = function() {
             let savedToken = localStorage.getItem("gh_token");
             if (savedToken) {
                 document.getElementById("tokenInput").value = savedToken;
             }
+            checkResults();
         };
 
-        function saveSettings() {
+        function saveToken() {
             let token = document.getElementById("tokenInput").value.trim();
             if (token) {
                 localStorage.setItem("gh_token", token);
-                document.getElementById("saveStatus").innerText = "Gespeichert!";
-                setTimeout(() => { document.getElementById("saveStatus").innerText = ""; }, 2000);
+                let status = document.getElementById("tokenStatus");
+                status.innerText = "Gespeichert!";
+                setTimeout(() => status.innerText = "", 2000);
             } else {
                 alert("Bitte gib einen gültigen Token ein.");
             }
@@ -213,11 +211,11 @@
             }
 
             if (!token) {
-                alert("Bitte gib zuerst deinen GitHub Personal Access Token in den Einstellungen ein und klicke auf Speichern!");
+                alert("Bitte gib zuerst deinen GitHub Token ein und klicke auf 'Token speichern'!");
                 return;
             }
 
-            statusDiv.innerText = "⏳ Verbinde mit GitHub...";
+            statusDiv.innerText = "⏳ Sende Start-Befehl an GitHub...";
 
             try {
                 let response = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/actions/workflows/${WORKFLOW_FILE}/dispatches`, {
@@ -236,10 +234,10 @@
                 });
 
                 if (response.status === 204) {
-                    statusDiv.innerText = "✅ Pipeline erfolgreich gestartet! Schau in GitHub unter 'Actions'.";
+                    statusDiv.innerText = "✅ Erfolgreich gestartet! Der Workflow läuft auf GitHub.";
                 } else {
-                    let errText = await response.text();
-                    statusDiv.innerText = `❌ Fehler (${response.status}): ${errText || response.statusText}`;
+                    let errData = await response.json().catch(() => ({}));
+                    statusDiv.innerText = "❌ Fehler beim Start: " + (errData.message || response.statusText);
                 }
             } catch (error) {
                 statusDiv.innerText = "❌ Netzwerkfehler: " + error.message;
@@ -271,12 +269,11 @@
                     });
                 }
             } catch (e) {
-                // Stilles Warten
+                // Keine Aktion erforderlich, falls result.json noch nicht existiert
             }
         }
 
         setInterval(checkResults, 15000);
-        checkResults();
     </script>
 </body>
 </html>
