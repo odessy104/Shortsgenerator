@@ -188,6 +188,13 @@
             if (savedToken) {
                 document.getElementById("tokenInput").value = savedToken;
             }
+
+            // Sofort den lokal gespeicherten Status anzeigen, falls die App neu geladen wurde
+            let savedStatus = localStorage.getItem("pipeline_active_status");
+            if (savedStatus) {
+                document.getElementById("statusMessage").innerHTML = `⏳ <b>Pipeline läuft aktiv:</b> ${savedStatus}`;
+            }
+
             checkResults();
             checkPipelineStatus();
         };
@@ -238,7 +245,9 @@
                 });
 
                 if (response.status === 204) {
-                    statusDiv.innerText = "✅ Erfolgreich gestartet! Der Workflow läuft auf GitHub.";
+                    let startMsg = "Pipeline auf GitHub gestartet...";
+                    statusDiv.innerHTML = `⏳ <b>Pipeline läuft aktiv:</b> ${startMsg}`;
+                    localStorage.setItem("pipeline_active_status", startMsg);
                 } else {
                     let errData = await response.json().catch(() => ({}));
                     statusDiv.innerText = "❌ Fehler beim Start: " + (errData.message || response.statusText);
@@ -254,12 +263,20 @@
                 if (response.ok) {
                     let status = await response.json();
                     let statusDiv = document.getElementById("statusMessage");
+                    
                     if (status.running) {
-                        statusDiv.innerHTML = `⏳ <b>Pipeline läuft aktiv:</b> ${status.message}`;
+                        let activeText = `${status.message} (${status.progress}%)`;
+                        statusDiv.innerHTML = `⏳ <b>Pipeline läuft aktiv:</b> ${activeText}`;
+                        localStorage.setItem("pipeline_active_status", activeText);
+                    } else {
+                        localStorage.removeItem("pipeline_active_status");
+                        if (status.progress === 100) {
+                            statusDiv.innerHTML = "✅ Alle Shorts erfolgreich generiert!";
+                        }
                     }
                 }
             } catch (e) {
-                // Status-Datei existiert eventuell noch nicht
+                // Status-Datei existiert noch nicht
             }
         }
 
