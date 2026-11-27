@@ -39,21 +39,30 @@
             font-size: 14px;
             color: #94a3b8;
         }
-        textarea {
+        textarea, input[type="text"] {
             width: 100%;
-            height: 90px;
             background: #0f1117;
             border: 1px solid #2e3548;
             border-radius: 8px;
             color: #fff;
             padding: 12px;
             font-size: 14px;
-            resize: vertical;
             box-sizing: border-box;
         }
-        textarea:focus {
+        textarea {
+            height: 90px;
+            resize: vertical;
+        }
+        textarea:focus, input[type="text"]:focus {
             outline: none;
             border-color: #eab308;
+        }
+        .settings-box {
+            background: #1e222d;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #2e3548;
         }
         .btn-start {
             width: 100%;
@@ -69,6 +78,20 @@
         }
         .btn-start:hover {
             background: #ca8a04;
+        }
+        .btn-save {
+            background: #3b82f6;
+            color: #fff;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 13px;
+            margin-top: 8px;
+        }
+        .btn-save:hover {
+            background: #2563eb;
         }
         #video-list-container {
             margin-top: 20px;
@@ -131,6 +154,14 @@
     <div class="container">
         <h2>🎬 Shorts Generator Hub</h2>
         
+        <!-- Einstellungen-Bereich für den Token -->
+        <div class="settings-box">
+            <label for="tokenInput">⚙️ GitHub Personal Access Token:</label>
+            <input type="password" id="tokenInput" placeholder="ghp_xxxx..." />
+            <button class="btn-save" onclick="saveSettings()">💾 Token speichern</button>
+            <span id="saveStatus" style="font-size: 12px; color: #22c55e; margin-left: 10px;"></span>
+        </div>
+
         <div class="input-group">
             <label for="themesInput">Wissenschaftliche Themen (kommagetrennt):</label>
             <textarea id="themesInput" placeholder="Geheimnisse des menschlichen Gedächtnisses, Erstaunliche Superkräfte von Tieren..."></textarea>
@@ -145,17 +176,32 @@
     </div>
 
     <script>
-        // GitHub Konfiguration (bitte anpassen falls sich Repo-Namen ändern)
         const GITHUB_USER = "odessy104";
         const GITHUB_REPO = "Shortsgenerator";
         const WORKFLOW_FILE = "run_pipeline.yml";
-        
-        // Hinweis: Für GitHub Dispatch über Web-App wird ein Personal Access Token (PAT) benötigt.
-        // Falls du den Token direkt in localStorage speicherst oder im Code hinterlegst:
-        const GITHUB_TOKEN = localStorage.getItem("gh_token") || "";
+
+        // Beim Laden der Seite prüfen, ob ein Token gespeichert ist
+        window.onload = function() {
+            let savedToken = localStorage.getItem("gh_token");
+            if (savedToken) {
+                document.getElementById("tokenInput").value = savedToken;
+            }
+        };
+
+        function saveSettings() {
+            let token = document.getElementById("tokenInput").value.trim();
+            if (token) {
+                localStorage.setItem("gh_token", token);
+                document.getElementById("saveStatusinnerText = "Gespeichert!";
+                setTimeout(() => { document.getElementById("saveStatus").innerText = ""; }, 2000);
+            } else {
+                alert("Bitte gib einen gültigen Token ein.");
+            }
+        }
 
         async function triggerPipeline() {
             let themes = document.getElementById("themesInput").value.trim();
+            let token = localStorage.getItem("gh_token") || document.getElementById("tokenInput").value.trim();
             let statusDiv = document.getElementById("statusMessage");
 
             if (!themes) {
@@ -163,13 +209,9 @@
                 return;
             }
 
-            if (!GITHUB_TOKEN) {
-                let tokenInput = prompt("Bitte gib deinen GitHub Personal Access Token (mit 'repo' bzw. 'workflow' Berechtigung) ein:");
-                if (tokenInput) {
-                    localStorage.setItem("gh_token", tokenInput.trim());
-                } else {
-                    return;
-                }
+            if (!token) {
+                alert("Bitte gib zuerst deinen GitHub Personal Access Token in den Einstellungen ein und klicke auf Speichern!");
+                return;
             }
 
             statusDiv.innerText = "⏳ Starte Pipeline auf GitHub...";
@@ -178,7 +220,7 @@
                 let response = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/actions/workflows/${WORKFLOW_FILE}/dispatches`, {
                     method: 'POST',
                     headers: {
-                        'Authorization': `token ${localStorage.getItem("gh_token")}`,
+                        'Authorization': `token ${token}`,
                         'Accept': 'application/vnd.github.v3+json',
                         'Content-Type': 'application/json'
                     },
@@ -230,7 +272,6 @@
             }
         }
 
-        // Regelmäßig im Hintergrund prüfen
         setInterval(checkResults, 15000);
         checkResults();
     </script>
