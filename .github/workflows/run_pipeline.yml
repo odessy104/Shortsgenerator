@@ -38,9 +38,11 @@ jobs:
           THEMEN_LISTE: ${{ github.event.inputs.themen }}
         run: |
           python hybrid_pipeline.py
-      - name: Fertiges Short speichern (Artifact)
-        uses: actions/upload-artifact@v4
+      - name: Release fertige Shorts hochladen
+        uses: softprops/action-gh-release@v2
         with:
-          name: youtube-short
-          path: output/*.mp4  # Passe den Pfad an, falls deine MP4 woanders gespeichert wird
-
+          tag_name: shorts-run-${{ github.run_number }}
+          name: "🎬 Shorts Run #${{ github.run_number }}"
+          files: output/*.mp4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
