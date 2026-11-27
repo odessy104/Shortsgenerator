@@ -146,6 +146,10 @@
             color: #94a3b8;
             font-size: 13px;
             text-align: center;
+            padding: 10px;
+            background: #0f1117;
+            border-radius: 6px;
+            border: 1px solid #2e3548;
         }
     </style>
 </head>
@@ -169,7 +173,7 @@
 
         <button class="btn-start" onclick="triggerPipeline()">🚀 Pipeline auf GitHub starten</button>
 
-        <div id="statusMessage" class="status-msg"></div>
+        <div id="statusMessage" class="status-msg">Bereit.</div>
 
         <div id="video-list-container"></div>
     </div>
@@ -185,6 +189,7 @@
                 document.getElementById("tokenInput").value = savedToken;
             }
             checkResults();
+            checkPipelineStatus();
         };
 
         function saveToken() {
@@ -243,12 +248,26 @@
             }
         }
 
+        async function checkPipelineStatus() {
+            try {
+                let response = await fetch('status.json?_=' + new Date().getTime());
+                if (response.ok) {
+                    let status = await response.json();
+                    let statusDiv = document.getElementById("statusMessage");
+                    if (status.running) {
+                        statusDiv.innerHTML = `⏳ <b>Pipeline läuft aktiv:</b> ${status.message}`;
+                    }
+                }
+            } catch (e) {
+                // Status-Datei existiert eventuell noch nicht
+            }
+        }
+
         async function checkResults() {
             try {
-                let response = `result.json?_=` + new Date().getTime();
-                let res = await fetch(response);
-                if (res.ok) {
-                    let data = await res.json();
+                let response = await fetch('result.json?_=' + new Date().getTime());
+                if (response.ok) {
+                    let data = await response.json();
                     let container = document.getElementById('video-list-container');
                     container.innerHTML = "";
 
@@ -269,11 +288,12 @@
                     });
                 }
             } catch (e) {
-                // Keine Aktion
+                // Keine Aktion erforderlich
             }
         }
 
         setInterval(checkResults, 15000);
+        setInterval(checkPipelineStatus, 10000);
     </script>
 </body>
 </html>
