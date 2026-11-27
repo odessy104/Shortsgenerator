@@ -66,7 +66,7 @@ else:
 
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "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")
 GROQ_MODEL = "openai/gpt-oss-120b"
-GROQ_URL = "[https://api.groq.com/openai/v1/chat/completions](https://api.groq.com/openai/v1/chat/completions)"
+GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 FALLBACK_EMOJI_MAP = {
     "WELTALL": "🌌", "RAUM": "🚀", "ZEIT": "⏳", "GEFAHR": "⚠️", 
@@ -413,16 +413,15 @@ def search_ddgs_image_pool(queries_to_try, used_urls):
     return None
 
 def search_wikimedia_image_pool(query, main_topic, used_urls):
-    search_url = "https://commons.wikimedia.org/w/api.php"
+    search_url = "[https://commons.wikimedia.org/w/api.php](https://commons.wikimedia.org/w/api.php)"
     clean_q = re.sub(r'\b(macro|photography|wide shot|angle|realistic|cinematic|background|high resolution|scientific|visualization)\b', '', query, flags=re.IGNORECASE).strip()
     words = clean_q.split()
     short_q = " ".join(words[:3]) if len(words) > 3 else clean_q
     
-    # Kombiniere spezifisches Keyword und Hauptthema für treffgenauere Wikimedia-Suchergebnisse
     search_queries = [short_q, f"{main_topic} {words[0] if words else ''}".strip(), main_topic]
     
     headers = {
-        "User-Agent": "ScienceShortsGenerator/1.0 (https://github.com; contact@scienceshorts.local) Python-Requests"
+        "User-Agent": "ScienceShortsGenerator/1.0 ([https://github.com](https://github.com); contact@scienceshorts.local) Python-Requests"
     }
     
     for sq in search_queries:
@@ -819,7 +818,7 @@ def get_outro_clip(video_size, duration=3.5, start_time=0.0):
     return ImageClip(temp_path).with_duration(duration).with_start(start_time).with_position(('center', h * 0.42))
 
 def upload_short_to_youtube(video_path, title, description="#shorts #science #funfacts"):
-    SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
+    SCOPES = ["[https://www.googleapis.com/auth/youtube.upload](https://www.googleapis.com/auth/youtube.upload)"]
     creds = None
     if os.path.exists("token.pickle"):
         with open("token.pickle", "rb") as token:
@@ -1052,7 +1051,6 @@ def render_short(script_data, topic, spoken_hint="", index_num=1):
     except:
         pass
    
-        # Speichere alle Videos als Liste für die Web-App
     results_list = []
     if os.path.exists("result.json"):
         try:
@@ -1089,4 +1087,3 @@ if __name__ == "__main__":
         full_text = " ".join([p["text"] for p in script_data["parts"]])
         clean_spoken = asyncio.run(generate_audio_async(full_text))
         render_short(script_data, topic, spoken_hint=clean_spoken, index_num=idx)
-        
