@@ -1,4 +1,34 @@
 {
-    "title": "Zeitreisen: Was die Physik wirklich erlaubt #shorts",
-    "status": "fertig"
+    "videos": [
+        {
+            "title": "Das verborgene Gedächtnis: Wie unser Gehirn Erinnerungen formt #shorts",
+            "index": 1,
+            "tag": "short-1",
+            "status": "fertig"
+        },
+        {
+            "title": "Die verborgenen Superkräfte der Tierwelt – Unglaubliches #shorts",
+            "index": 2,
+            "tag": "short-2",
+            "status": "fertig"
+        },
+        {
+            "title": "Wenn Maschinen träumen: Das Geheimnis des KI‑Bewusstseins #shorts",
+            "index": 3,
+            "tag": "short-3",
+            "status": "fertig"
+        },
+        {
+            "title": "Erde im Magnetfeld: Gefahr und Schutz #shorts",
+            "index": 4,
+            "tag": "short-4",
+            "status": "fertig"
+        },
+        {
+            "title": "Die verborgene Uhr im All: Warum Zeit anders tickt #shorts",
+            "index": 5,
+            "tag": "short-5",
+            "status": "fertig"
+        }
+    ]
 }
