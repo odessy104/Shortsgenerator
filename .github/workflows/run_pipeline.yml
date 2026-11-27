@@ -3,7 +3,7 @@ name: Run YouTube Shorts Pipeline
 on:
   workflow_dispatch:
     inputs:
-      themen:
+      themes:
         description: 'Themen für die Shorts (mehrere durch Komma getrennt)'
         required: true
         default: 'Künstliche Intelligenz, Raumfahrt, Psychologie'
